@@ -22,7 +22,7 @@ jobs:
         run: npm install
 
       - name: Generar instalador Windows
-        run: npx electron-builder --win --x64
+        run: npx electron-builder --win --x64 --publish never
 
       - name: Guardar instalador Windows
         uses: actions/upload-artifact@v4
@@ -48,7 +48,7 @@ jobs:
         run: npm install
 
       - name: Generar aplicación macOS Universal
-        run: npx electron-builder --mac --universal
+        run: npx electron-builder --mac --universal --publish never
 
       - name: Guardar instaladores macOS
         uses: actions/upload-artifact@v4
