@@ -1,18 +1,18 @@
 {
   "name": "revolutionpro-catalogo-2026",
-  "version": "1.0.0",
-  "description": "Revolution Pro - Catálogo Ropa 2026",
+  "version": "1.1.0",
+  "description": "Revolution Pro - Catálogo Ropa 2026 - V20",
   "main": "main.js",
   "author": "Revolution Pro",
   "license": "ISC",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win --x64",
-    "build:win": "electron-builder --win --x64",
-    "build:mac": "electron-builder --mac --universal"
+    "build": "electron-builder --win --x64 --publish never",
+    "build:win": "electron-builder --win --x64 --publish never",
+    "build:mac": "electron-builder --mac --universal --publish never"
   },
   "devDependencies": {
-    "electron": "^39.0.0",
+    "electron": "41.0.2",
     "electron-builder": "^26.0.0"
   },
   "build": {
@@ -32,9 +32,7 @@
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "icon.ico",
@@ -50,20 +48,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "universal"
-          ]
+          "arch": ["universal"]
         },
         {
           "target": "zip",
-          "arch": [
-            "universal"
-          ]
+          "arch": ["universal"]
         }
       ],
       "icon": "icon.png",
       "category": "public.app-category.business",
-      "artifactName": "Revolution-Pro-Catalogo-2026-${arch}.${ext}"
+      "artifactName": "Revolution-Pro-Catalogo-2026-${arch}.${ext}",
+      "hardenedRuntime": true
     },
     "dmg": {
       "title": "Revolution Pro Catálogo 2026"

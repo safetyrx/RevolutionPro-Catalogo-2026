@@ -2,21 +2,26 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// V20: base actualizada de Electron para evitar el crash observado en Electron 39
+// sobre macOS Apple Silicon, manteniendo el resto del catálogo sin cambios.
 function createWindow() {
   const win = new BrowserWindow({
     width: 1500,
     height: 950,
     minWidth: 1100,
     minHeight: 700,
-    show: true,
+    show: false,
     title: 'Revolution Pro - Catálogo 2026',
+    backgroundColor: '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      sandbox: true
     }
   });
 
+  win.once('ready-to-show', () => win.show());
   win.loadFile(path.join(__dirname, 'index.html'));
 }
 
@@ -25,7 +30,6 @@ ipcMain.handle('save-pdf', async (event) => {
   const win = BrowserWindow.fromWebContents(webContents);
 
   try {
-    // Esperamos a que la vista de impresión termine de renderizar.
     await new Promise(resolve => setTimeout(resolve, 300));
 
     const pdfData = await webContents.printToPDF({
