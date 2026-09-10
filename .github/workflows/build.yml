@@ -1,14 +1,12 @@
-name: Build Revolution Pro Catalogo 2026
+name: Build Revolution Pro Catalogo 2026 V20
 
 on:
   workflow_dispatch:
 
 jobs:
-
   windows:
     name: Build Windows
     runs-on: windows-latest
-
     steps:
       - name: Descargar proyecto
         uses: actions/checkout@v4
@@ -17,6 +15,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Instalar dependencias
         run: npm install
@@ -27,14 +26,12 @@ jobs:
       - name: Guardar instalador Windows
         uses: actions/upload-artifact@v4
         with:
-          name: Revolution-Pro-Windows
+          name: Revolution-Pro-Windows-V20
           path: dist/*Setup.exe
 
-
   macos:
-    name: Build macOS
+    name: Build macOS Universal
     runs-on: macos-latest
-
     steps:
       - name: Descargar proyecto
         uses: actions/checkout@v4
@@ -43,6 +40,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Instalar dependencias
         run: npm install
@@ -53,7 +51,7 @@ jobs:
       - name: Guardar instaladores macOS
         uses: actions/upload-artifact@v4
         with:
-          name: Revolution-Pro-macOS
+          name: Revolution-Pro-macOS-V20
           path: |
             dist/*.dmg
             dist/*.zip
