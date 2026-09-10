@@ -1,0 +1,73 @@
+{
+  "name": "revolutionpro-catalogo-2026",
+  "version": "1.0.0",
+  "description": "Revolution Pro - Catálogo Ropa 2026",
+  "main": "main.js",
+  "author": "Revolution Pro",
+  "license": "ISC",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac --universal"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "cl.revolutionpro.catalogo2026",
+    "productName": "Revolution Pro Catálogo 2026",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "preload.js",
+      "icon.ico",
+      "icon.png"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico",
+      "artifactName": "Revolution-Pro-Catalogo-2026-Setup.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "icon.png",
+      "category": "public.app-category.business",
+      "artifactName": "Revolution-Pro-Catalogo-2026-${arch}.${ext}"
+    },
+    "dmg": {
+      "title": "Revolution Pro Catálogo 2026"
+    },
+    "asar": true
+  }
+}
