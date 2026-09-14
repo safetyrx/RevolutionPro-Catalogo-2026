@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Revolution Pro — Multi-Catálogo V22</title>
+<title>Revolution Pro — Multi-Catálogo V23</title>
 
-<!-- ══════════════ PDF.js desde jsdelivr (NO bloqueado por Edge) ══════════════ -->
+<!-- PDF.js y jsPDF desde jsdelivr (más estable, no lo bloquea Edge) -->
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <script>
   if (typeof pdfjsLib !== "undefined") {
     pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
@@ -26,8 +27,10 @@ body{overflow:hidden}
 .topbar nav{display:flex;gap:2px;margin-left:auto}
 .navbtn{border:0;background:transparent;padding:9px 11px;border-radius:7px;cursor:pointer;color:#666;font-weight:700}
 .navbtn.active{background:#f0f2f3;color:#1f2326}
-.primary{background:#f2c400;color:#161616;border:0;border-radius:7px;padding:10px 14px;font-weight:900;cursor:pointer}
+.primary{background:#f2c400;color:#161616;border:0;border-radius:7px;padding:10px 14px;font-weight:900;cursor:pointer;white-space:nowrap}
+.primary:hover{background:#e0b500}
 .secondary{border:1px solid #d5d9dc;background:#fff;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.secondary:hover{background:#f7f8f9}
 
 .catalogDropdownWrap{position:relative}
 .catalogDropdownBtn{display:flex;align-items:center;gap:8px;background:#f7f8f9;border:1px solid #d8dcdf;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#1f2326;cursor:pointer;max-width:240px}
@@ -113,6 +116,10 @@ main{min-width:0;overflow:auto}
 .formgrid textarea{min-height:90px;resize:vertical}
 .full{grid-column:1/-1}
 
+.sellerVisibilityBox{background:#f7f8f9;border:1px solid #e0e3e5;border-radius:8px;padding:12px;margin-top:12px}
+.sellerVisibilityBox label{display:block;font-size:10px;font-weight:800;margin-bottom:6px}
+.sellerVisibilityBox select{width:100%;padding:8px;border:1px solid #d5d9dc;border-radius:6px;font:inherit;font-size:11px;background:#fff}
+
 .productEditor{background:#fff;border:1px solid #dfe3e6;border-radius:10px;overflow:hidden}
 .priceLegend{display:grid;grid-template-columns:1fr 125px 125px 42px 55px;gap:8px;padding:10px 12px;font-size:10px;font-weight:900;color:#7b8186;border-bottom:1px solid #edf0f1;background:#fafbfb}
 .prodrow{display:grid;grid-template-columns:1fr 125px 125px 42px 55px;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #edf0f1}
@@ -156,6 +163,8 @@ main{min-width:0;overflow:auto}
 .modal input[type=text]{width:100%;padding:10px;border:1px solid #d5d9dc;border-radius:7px;font-size:13px;margin-bottom:14px;font:inherit}
 .modal input[type=file]{width:100%;padding:10px;border:1px dashed #d5d9dc;border-radius:7px;font-size:11px;margin-bottom:14px;background:#fafbfb}
 .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+.modal .progressWrap{margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden}
+.modal .progressBar{height:100%;width:0%;background:#f2c400;transition:width .2s}
 
 .emptyDetail{text-align:center;padding:70px 20px;color:#858b90}
 .emptyDetail div{font-size:30px}
@@ -198,7 +207,7 @@ main{min-width:0;overflow:auto}
 <header class="topbar">
   <div class="brand">
     <div class="rpmark">RP</div>
-    <div><b>REVOLUTION PRO</b><span>MULTI-CATÁLOGO · V22</span></div>
+    <div><b>REVOLUTION PRO</b><span>MULTI-CATÁLOGO · V23</span></div>
   </div>
 
   <div class="catalogDropdownWrap">
@@ -223,7 +232,8 @@ main{min-width:0;overflow:auto}
     <button class="navbtn" data-view="seller">Mis datos</button>
     <button class="navbtn" data-view="catalogManager">Páginas del catálogo</button>
   </nav>
-  <button class="primary" id="btnGeneratePDF">Generar catálogo PDF</button>
+  <button class="primary" id="btnSavePDF">💾 Guardar como PDF</button>
+  <button class="secondary" id="btnPrintPDF">🖨️ Imprimir / Previsualizar</button>
 </header>
 
 <div class="app">
@@ -283,7 +293,8 @@ main{min-width:0;overflow:auto}
             <p>Valores comerciales en pesos chilenos (CLP). El diseño y contenido oficial permanecen bloqueados.</p>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="primary" id="btnGeneratePDF2">Generar catálogo PDF</button>
+            <button class="primary" id="btnSavePDF2">💾 Guardar como PDF</button>
+            <button class="secondary" id="btnPrintPDF2">🖨️ Imprimir</button>
           </div>
         </div>
         <div class="notice">🔒 <b>Contenido oficial bloqueado.</b> Los productos, fotografías, textos técnicos y diseño no son editables desde el modo vendedor.</div>
@@ -316,6 +327,17 @@ main{min-width:0;overflow:auto}
             <label>WhatsApp<input id="sWa" placeholder="+56 9 1234 5678"></label>
             <label>Cargo<input id="sRole" placeholder="Ejecutivo Comercial"></label>
             <label class="full">Mensaje comercial<textarea id="sMsg" placeholder="Mensaje opcional para clientes"></textarea></label>
+          </div>
+          <div class="sellerVisibilityBox">
+            <label>¿DÓNDE MOSTRAR LOS DATOS DEL VENDEDOR EN EL PDF?</label>
+            <select id="sellerPageSelect">
+              <option value="none">No mostrar en ninguna página</option>
+              <option value="last" selected>Solo en la última página (contraportada)</option>
+              <option value="first">Solo en la primera página (portada)</option>
+            </select>
+            <div style="font-size:10px;color:#777d82;margin-top:6px">
+              También puedes seleccionar una página específica desde la vista <b>Catálogo</b> activando el modo <b>Mover datos vendedor</b>.
+            </div>
           </div>
         </div>
       </div>
@@ -381,15 +403,17 @@ main{min-width:0;overflow:auto}
 
 <script>
 /* ══════════════════════════════════════════════════════════════
-   REVOLUTION PRO — Multi-Catálogo V22
-   PDF.js integrado desde jsdelivr.
+   REVOLUTION PRO — Multi-Catálogo V23
+   - Doble calidad (miniatura + alta resolución)
+   - Datos del vendedor en página seleccionable
+   - Guardar como PDF (jsPDF) + Imprimir (window.print)
    ══════════════════════════════════════════════════════════════ */
 
 (function(){
 "use strict";
 
-console.log("[V22] Cargando script principal...");
-console.log("[V22] pdfjsLib disponible:", typeof pdfjsLib);
+console.log("[V23] Cargando script principal...");
+console.log("[V23] pdfjsLib:", typeof pdfjsLib, "| jsPDF:", typeof window.jspdf);
 
 var LS_INDEX_KEY = "rp_v22_catalogs_index";
 var LS_SELLER_KEY = "rp_v22_seller";
@@ -492,7 +516,7 @@ function saveSellerLS(){
 
 /* ───── Bootstrap ───── */
 function bootstrap(){
-  console.log("[V22] bootstrap() iniciado");
+  console.log("[V23] bootstrap()");
   loadIndex();
   loadSellerLS();
   bindAllEvents();
@@ -519,18 +543,19 @@ function loadActiveCatalog(){
 }
 
 function afterLoad(){
-  console.log("[V22] afterLoad() — catálogo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
+  console.log("[V23] afterLoad() — catálogo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
   fillSellerForm();
   renderCatalogDropdown();
   renderCatalogManager();
   renderItems();
   renderPage();
   renderProductEditor();
-  console.log("[V22] ✓ App lista");
+  renderSellerPageSelect();
+  console.log("[V23] ✓ App lista");
 }
 
 function fatalError(err){
-  console.error("[V22] Error fatal:", err);
+  console.error("[V23] Error fatal:", err);
   var div = document.createElement("div");
   div.style.cssText = "position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#b42318;color:#fff;padding:14px 22px;border-radius:10px;z-index:9999;font-size:13px;font-weight:600;box-shadow:0 8px 24px #0004;max-width:90%;text-align:center";
   div.textContent = "Error: " + (err && err.message ? err.message : err);
@@ -549,7 +574,9 @@ function createEmptyStarterCatalog(){
     products: [],
     prices: {},
     positions: {},
-    sellerPosition: { x: 50, y: 43 }
+    sellerPosition: { x: 50, y: 43 },
+    sellerPageMode: "last",  // "last" | "first" | "none" | <número de página>
+    sellerCustomPage: null
   };
   return idbPut(catalog).then(function(){
     state.catalogIndex.list.push({ id: id, name: catalog.name, createdAt: catalog.createdAt, pages: 0 });
@@ -583,14 +610,18 @@ function updateActiveCatalogName(){
 
 /* ───── Bindings ───── */
 function bindAllEvents(){
-  console.log("[V22] bindAllEvents()");
+  console.log("[V23] bindAllEvents()");
 
   $("catalogDropdownBtn").addEventListener("click", function(e){ e.stopPropagation(); toggleCatalogMenu(); });
   $("btnNewCatalog").addEventListener("click", function(e){ e.stopPropagation(); openNewCatalogModal(); });
   $("btnCancelNewCatalog").addEventListener("click", closeNewCatalogModal);
   $("btnImportCatalog").addEventListener("click", importNewCatalog);
-  $("btnGeneratePDF").addEventListener("click", generatePDF);
-  $("btnGeneratePDF2").addEventListener("click", generatePDF);
+
+  $("btnSavePDF").addEventListener("click", function(){ savePDFDirect(); });
+  $("btnSavePDF2").addEventListener("click", function(){ savePDFDirect(); });
+  $("btnPrintPDF").addEventListener("click", function(){ generatePDFPrint(); });
+  $("btnPrintPDF2").addEventListener("click", function(){ generatePDFPrint(); });
+
   $("btnPrevPage").addEventListener("click", prevPage);
   $("btnNextPage").addEventListener("click", nextPage);
   $("btnZoomMinus").addEventListener("click", function(){ zoom(-1); });
@@ -614,6 +645,15 @@ function bindAllEvents(){
   ["sName","sCompany","sEmail","sPhone","sWa","sRole","sMsg"].forEach(function(id){
     var el = $(id);
     if(el) el.addEventListener("input", saveSeller);
+  });
+
+  $("sellerPageSelect").addEventListener("change", function(){
+    if(!state.activeCatalog) return;
+    state.activeCatalog.sellerPageMode = this.value;
+    if(this.value !== "custom") state.activeCatalog.sellerCustomPage = null;
+    persistActiveCatalog().then(function(){
+      renderPage();
+    });
   });
 
   document.addEventListener("click", function(e){
@@ -643,9 +683,10 @@ function showView(name){
   if(name === "catalog") renderPage();
   if(name === "editor") renderProductEditor();
   if(name === "catalogManager") renderCatalogManager();
+  if(name === "seller") renderSellerPageSelect();
 }
 
-/* ───── Menú de catálogos ───── */
+/* ───── Menú catálogos ───── */
 function toggleCatalogMenu(){
   var m = $("catalogDropdownMenu");
   m.classList.toggle("open");
@@ -756,7 +797,6 @@ function openNewCatalogModal(){
   $("newCatalogPdf").value = "";
   $("newCatalogStatus").textContent = "";
   $("newCatalogStatus").className = "importStatus";
-  // Remover barra de progreso previa si existe
   var old = document.getElementById("pdfProgressWrap");
   if(old) old.remove();
   $("newCatalogModal").classList.add("open");
@@ -775,7 +815,7 @@ function importNewCatalog(){
   if(!fileInput){ status.className = "importStatus err"; status.textContent = "Selecciona un PDF."; return; }
   if(typeof pdfjsLib === "undefined"){
     status.className = "importStatus err";
-    status.textContent = "Librería PDF no disponible. Revisa tu conexión a internet.";
+    status.textContent = "Librería PDF no disponible.";
     return;
   }
 
@@ -787,9 +827,9 @@ function importNewCatalog(){
 
   var progWrap = document.createElement("div");
   progWrap.id = "pdfProgressWrap";
-  progWrap.style.cssText = "margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden";
+  progWrap.className = "progressWrap";
   var progBar = document.createElement("div");
-  progBar.style.cssText = "height:100%;width:0%;background:#f2c400;transition:width .2s";
+  progBar.className = "progressBar";
   progWrap.appendChild(progBar);
   status.parentNode.insertBefore(progWrap, status.nextSibling);
 
@@ -813,7 +853,7 @@ function importNewCatalog(){
 
       function processNextPage(){
         if(currentPage > total){
-          status.textContent = "Guardando catálogo...";
+          status.textContent = "Guardando catálogo (alta calidad)...";
           progBar.style.width = "100%";
 
           var id = "cat_" + Date.now();
@@ -826,7 +866,9 @@ function importNewCatalog(){
             products: [],
             prices: {},
             positions: {},
-            sellerPosition: { x: 50, y: 43 }
+            sellerPosition: { x: 50, y: 43 },
+            sellerPageMode: "last",
+            sellerCustomPage: null
           };
 
           idbPut(catalog).then(function(){
@@ -852,21 +894,52 @@ function importNewCatalog(){
 
         setTimeout(function(){
           pdf.getPage(currentPage).then(function(page){
-            var viewport = page.getViewport({ scale: 1.0 });
-            var canvas = document.createElement("canvas");
-            canvas.width = Math.round(viewport.width);
-            canvas.height = Math.round(viewport.height);
-            var ctx = canvas.getContext("2d");
+            // ── DOBLE CALIDAD ──
+            // 1) Miniatura: escala 0.4, JPEG 0.65
+            // 2) Alta: escala 2.0, JPEG 0.92
+            var thumbViewport = page.getViewport({ scale: 0.4 });
+            var thumbCanvas = document.createElement("canvas");
+            thumbCanvas.width = Math.round(thumbViewport.width);
+            thumbCanvas.height = Math.round(thumbViewport.height);
+            var thumbCtx = thumbCanvas.getContext("2d");
 
-            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function(){
-              pages.push({ index: currentPage, dataUrl: canvas.toDataURL("image/jpeg", 0.72) });
-              canvas.width = 0;
-              canvas.height = 0;
-              currentPage++;
-              setTimeout(processNextPage, 0);
+            thumbCtx.fillStyle = "#ffffff";
+            thumbCtx.fillRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+
+            page.render({ canvasContext: thumbCtx, viewport: thumbViewport }).promise.then(function(){
+              var thumbUrl = thumbCanvas.toDataURL("image/jpeg", 0.65);
+              thumbCanvas.width = 0;
+              thumbCanvas.height = 0;
+
+              var highViewport = page.getViewport({ scale: 2.0 });
+              var highCanvas = document.createElement("canvas");
+              highCanvas.width = Math.round(highViewport.width);
+              highCanvas.height = Math.round(highViewport.height);
+              var highCtx = highCanvas.getContext("2d");
+
+              highCtx.fillStyle = "#ffffff";
+              highCtx.fillRect(0, 0, highCanvas.width, highCanvas.height);
+
+              page.render({ canvasContext: highCtx, viewport: highViewport }).promise.then(function(){
+                var highUrl = highCanvas.toDataURL("image/jpeg", 0.92);
+                highCanvas.width = 0;
+                highCanvas.height = 0;
+
+                pages.push({
+                  index: currentPage,
+                  dataUrl: thumbUrl,      // miniatura para preview
+                  highUrl: highUrl        // alta para exportar
+                });
+                currentPage++;
+                setTimeout(processNextPage, 0);
+              }).catch(function(err){
+                status.className = "importStatus err";
+                status.textContent = "Error render alta en página " + currentPage + ": " + err.message;
+                progWrap.remove();
+              });
             }).catch(function(err){
               status.className = "importStatus err";
-              status.textContent = "Error en página " + currentPage + ": " + err.message;
+              status.textContent = "Error render miniatura en página " + currentPage + ": " + err.message;
               progWrap.remove();
             });
           }).catch(function(err){
@@ -909,7 +982,7 @@ function renderItems(){
     div.setAttribute("data-page", p.index);
     div.setAttribute("data-search", ((prod ? prod.name : "") + " " + p.index).toLowerCase());
     div.innerHTML =
-      '<img src="' + p.dataUrl + '" alt="">' +
+      '<img src="' + (p.dataUrl || p.highUrl || "") + '" alt="">' +
       '<div><b>Pág ' + p.index + '</b><small>' + (prod ? escapeHtml(prod.name) : "Sin asignar") + '</small></div>';
     div.addEventListener("click", function(){ gotoPage(p.index); });
     wrap.appendChild(div);
@@ -932,6 +1005,19 @@ function gotoPage(n){
   renderItems();
 }
 
+/* ───── ¿Se muestra vendedor en la página actual? ───── */
+function shouldShowSellerOnPage(pageNum){
+  if(!state.activeCatalog) return false;
+  var mode = state.activeCatalog.sellerPageMode || "last";
+  if(mode === "none") return false;
+  if(mode === "last") return pageNum === state.activeCatalog.pages.length;
+  if(mode === "first") return pageNum === 1;
+  if(mode === "custom") return pageNum === state.activeCatalog.sellerCustomPage;
+  var n = parseInt(mode, 10);
+  if(!isNaN(n)) return pageNum === n;
+  return false;
+}
+
 /* ───── Render página ───── */
 function renderPage(){
   if(!state.activeCatalog) return;
@@ -951,7 +1037,7 @@ function renderPage(){
   for(var i = 0; i < state.activeCatalog.pages.length; i++){
     if(state.activeCatalog.pages[i].index === state.page){ p = state.activeCatalog.pages[i]; break; }
   }
-  $("pageImg").src = p ? p.dataUrl : "";
+  $("pageImg").src = p ? (p.dataUrl || p.highUrl || "") : "";
   $("pageTitle").textContent = "Página " + state.page + " de " + total;
   $("pageCounter").textContent = state.page + " / " + total;
 
@@ -979,17 +1065,22 @@ function renderPage(){
   }
 
   var so = $("sellerOverlay");
-  var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-  so.style.left = sp.x + "%";
-  so.style.top = sp.y + "%";
-  var parts = [];
-  if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
-  if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
-  if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
-  if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
-  if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
-  so.innerHTML = parts.length ? parts.join("") : '<span style="color:#999">Sin datos</span>';
-  so.classList.toggle("hidden", parts.length === 0);
+  var showSellerHere = shouldShowSellerOnPage(state.page);
+  if(showSellerHere){
+    var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
+    so.style.left = sp.x + "%";
+    so.style.top = sp.y + "%";
+    var parts = [];
+    if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
+    if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
+    if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
+    if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
+    if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
+    so.innerHTML = parts.length ? parts.join("") : '<span style="color:#999">Sin datos</span>';
+    so.classList.toggle("hidden", parts.length === 0);
+  } else {
+    so.classList.add("hidden");
+  }
 
   updatePositionClasses();
 }
@@ -1112,6 +1203,37 @@ function saveSeller(){
   renderPage();
 }
 
+function renderSellerPageSelect(){
+  var sel = $("sellerPageSelect");
+  if(!sel) return;
+  var prevVal = state.activeCatalog && state.activeCatalog.sellerPageMode ? state.activeCatalog.sellerPageMode : "last";
+  sel.innerHTML = "";
+  var optNone = document.createElement("option"); optNone.value = "none"; optNone.textContent = "No mostrar en ninguna página";
+  var optLast = document.createElement("option"); optLast.value = "last"; optLast.textContent = "Solo en la última página (contraportada)";
+  var optFirst = document.createElement("option"); optFirst.value = "first"; optFirst.textContent = "Solo en la primera página (portada)";
+  sel.appendChild(optNone);
+  sel.appendChild(optLast);
+  sel.appendChild(optFirst);
+
+  if(state.activeCatalog && state.activeCatalog.pages.length > 0){
+    state.activeCatalog.pages.forEach(function(p){
+      var opt = document.createElement("option");
+      opt.value = String(p.index);
+      opt.textContent = "Página específica: " + p.index;
+      sel.appendChild(opt);
+    });
+  }
+
+  if(state.activeCatalog){
+    var mode = state.activeCatalog.sellerPageMode || "last";
+    if(mode === "custom") mode = String(state.activeCatalog.sellerCustomPage);
+    sel.value = mode;
+    if(!sel.value) sel.value = "last";
+  } else {
+    sel.value = prevVal;
+  }
+}
+
 /* ───── Catalog Manager ───── */
 function renderCatalogManager(){
   if(!state.activeCatalog) return;
@@ -1146,19 +1268,17 @@ function renderCatalogManager(){
     row.className = "catalogPageRow";
 
     var img = document.createElement("img");
-    img.src = p.dataUrl;
+    img.src = p.dataUrl || p.highUrl || "";
 
     var info = document.createElement("div");
     info.innerHTML = "<b>Página " + p.index + "</b><small>" + (isProduct ? "Producto: " + escapeHtml(prod.name) : "Sin asignar") + "</small>";
 
     var sel = document.createElement("select");
     var optNone = document.createElement("option");
-    optNone.value = "none";
-    optNone.textContent = "— Institucional / sin producto —";
+    optNone.value = "none"; optNone.textContent = "— Institucional / sin producto —";
     if(!isProduct) optNone.selected = true;
     var optProd = document.createElement("option");
-    optProd.value = "product";
-    optProd.textContent = "Producto";
+    optProd.value = "product"; optProd.textContent = "Producto";
     if(isProduct) optProd.selected = true;
     sel.appendChild(optNone);
     sel.appendChild(optProd);
@@ -1241,199 +1361,4 @@ function addCatalogProduct(){
   if(!pageNum || pageNum < 1 || pageNum > state.activeCatalog.pages.length){
     alert("Número de página inválido."); return;
   }
-  var name = prompt("Nombre del producto:");
-  if(!name) return;
-  state.activeCatalog.products = state.activeCatalog.products.filter(function(x){ return x.page !== pageNum; });
-  state.activeCatalog.products.push({ page: pageNum, name: name.trim() });
-  persistActiveCatalog().then(function(){
-    renderCatalogManager();
-    renderProductEditor();
-    renderItems();
-  });
-}
-
-function saveCatalogConfiguration(){
-  persistActiveCatalog().then(function(){
-    var st = $("catalogImportStatus");
-    st.className = "importStatus ok";
-    st.textContent = "✓ Configuración guardada.";
-    setTimeout(function(){ st.textContent = ""; st.className = "importStatus"; }, 2500);
-  });
-}
-
-/* ───── Modo posición ───── */
-function setCatalogPositionMode(mode){
-  state.positionMode = mode;
-  $("movePriceBtn").classList.toggle("active", mode === "price");
-  $("moveSellerBtn").classList.toggle("active", mode === "seller");
-  $("stopMoveBtn").classList.toggle("active", mode === "none");
-  var status = $("catalogPositionStatus");
-  if(mode === "price") status.textContent = "Arrastra el recuadro del precio donde quieras.";
-  else if(mode === "seller") status.textContent = "Arrastra el bloque de datos del vendedor.";
-  else status.textContent = "Selecciona qué elemento quieres mover directamente sobre la página.";
-  updatePositionClasses();
-}
-
-function updatePositionClasses(){
-  var pb = $("priceBadge");
-  var so = $("sellerOverlay");
-  pb.classList.toggle("positionEditable", state.positionMode === "price");
-  so.classList.toggle("positionEditable", state.positionMode === "seller");
-}
-
-function bindPositionDrag(){
-  var stage = $("stage");
-  var pw = $("pageWrap");
-  var dragging = null;
-
-  function onDown(e){
-    var tag = (e.target.tagName || "").toLowerCase();
-    if(tag === "input" || tag === "textarea" || tag === "select" || tag === "button") return;
-    var target = e.target.closest ? e.target.closest(".positionEditable") : null;
-    if(!target) return;
-    e.preventDefault();
-    dragging = { el: target, isPrice: target.id === "priceBadge", isSeller: target.id === "sellerOverlay" };
-    target.style.cursor = "grabbing";
-  }
-
-  function onMove(e){
-    if(!dragging) return;
-    var tag = (e.target.tagName || "").toLowerCase();
-    if(tag === "input" || tag === "textarea") return;
-    e.preventDefault();
-    var rect = pw.getBoundingClientRect();
-    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    var x = ((clientX - rect.left) / rect.width) * 100;
-    var y = ((clientY - rect.top) / rect.height) * 100;
-    var cx = Math.max(0, Math.min(100, x));
-    var cy = Math.max(0, Math.min(100, y));
-    dragging.el.style.left = cx + "%";
-    dragging.el.style.top = cy + "%";
-    if(dragging.isPrice){
-      var prod = null;
-      for(var i = 0; i < state.activeCatalog.products.length; i++){
-        if(state.activeCatalog.products[i].page === state.page){ prod = state.activeCatalog.products[i]; break; }
-      }
-      if(prod) state.activeCatalog.positions[prod.name] = { x: cx, y: cy };
-    } else if(dragging.isSeller){
-      state.activeCatalog.sellerPosition = { x: cx, y: cy };
-    }
-  }
-
-  function onUp(){
-    if(!dragging) return;
-    dragging.el.style.cursor = "";
-    dragging = null;
-    persistActiveCatalog();
-  }
-
-  stage.addEventListener("mousedown", onDown);
-  stage.addEventListener("touchstart", onDown, { passive: false });
-  document.addEventListener("mousemove", onMove);
-  document.addEventListener("touchmove", onMove, { passive: false });
-  document.addEventListener("mouseup", onUp);
-  document.addEventListener("touchend", onUp);
-}
-
-/* ───── Generar PDF vía print nativo ───── */
-function generatePDF(){
-  if(!state.activeCatalog){ alert("No hay catálogo cargado."); return; }
-  if(state.activeCatalog.pages.length === 0){ alert("Este catálogo no tiene páginas."); return; }
-
-  var printRoot = document.createElement("div");
-  printRoot.id = "printRoot";
-  printRoot.style.cssText = "position:fixed;inset:0;background:#fff;z-index:99999;overflow:auto";
-
-  var totalPages = state.activeCatalog.pages.length;
-
-  var styleEl = document.createElement("style");
-  styleEl.textContent =
-    "@page{size:letter;margin:0}" +
-    ".printPageWrapper{position:relative;width:612pt;height:792pt;background:#fff;page-break-after:always;break-after:page;overflow:hidden}" +
-    ".printPageWrapper:last-child{page-break-after:auto}" +
-    ".printPageWrapper img{width:100%;height:100%;display:block}" +
-    ".printPriceBlock{position:absolute;transform:translate(-50%,-50%);background:#fff;color:#eead00;border:1.5pt solid #202020;padding:5pt 7pt;min-width:123pt;text-align:center;line-height:1.06;font-family:Arial,sans-serif}" +
-    ".printPriceBlock .ln1,.printPriceBlock .ln2{display:block;font-size:8pt;font-weight:900;white-space:nowrap}" +
-    ".printPriceBlock .ln3{display:block;font-size:5pt;font-style:italic;margin-top:2pt;white-space:nowrap}" +
-    ".printSellerBlock{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);width:230pt;background:#fff;color:#202020;border:1.5pt solid #202020;padding:9pt 12pt;text-align:center;font-size:8.5pt;line-height:1.45;font-family:Arial,sans-serif}" +
-    ".printSellerBlock b{font-size:10pt;display:block}" +
-    ".printSellerBlock span{font-weight:700;display:block}" +
-    "@media print{body>*:not(#printRoot){display:none!important}#printRoot{position:static!important}}";
-  document.head.appendChild(styleEl);
-
-  state.activeCatalog.pages.forEach(function(p, idx){
-    var wrapper = document.createElement("div");
-    wrapper.className = "printPageWrapper";
-
-    var img = document.createElement("img");
-    img.src = p.dataUrl;
-    wrapper.appendChild(img);
-
-    var prod = null;
-    for(var i = 0; i < state.activeCatalog.products.length; i++){
-      if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-    }
-    if(prod){
-      var pr = state.activeCatalog.prices[prod.name] || {};
-      if(pr.show !== false && (pr.normal || pr.offer)){
-        var pos = state.activeCatalog.positions[prod.name] || { x: 80, y: 12 };
-        var normal = pr.normal ? formatCLP(pr.normal) : "—";
-        var offer = pr.offer ? formatCLP(pr.offer) : "—";
-        var badge = document.createElement("div");
-        badge.className = "printPriceBlock";
-        badge.style.left = pos.x + "%";
-        badge.style.top = pos.y + "%";
-        badge.innerHTML =
-          '<span class="ln1">PRECIO NORMAL: ' + normal + '</span>' +
-          '<span class="ln2">PRECIO OFERTA: ' + offer + '</span>' +
-          '<span class="ln3">OFERTA SUJETA A CAMBIOS*</span>';
-        wrapper.appendChild(badge);
-      }
-    }
-
-    if(idx === totalPages - 1){
-      var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-      var parts = [];
-      if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
-      if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
-      if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
-      if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
-      if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
-      if(state.seller.msg) parts.push("<span>" + escapeHtml(state.seller.msg) + "</span>");
-      if(parts.length){
-        var block = document.createElement("div");
-        block.className = "printSellerBlock";
-        block.style.left = sp.x + "%";
-        block.style.top = sp.y + "%";
-        block.innerHTML = parts.join("");
-        wrapper.appendChild(block);
-      }
-    }
-
-    printRoot.appendChild(wrapper);
-  });
-
-  document.body.appendChild(printRoot);
-  document.body.classList.add("printing");
-
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){
-      document.body.classList.remove("printing");
-      if(printRoot.parentNode) printRoot.parentNode.removeChild(printRoot);
-      styleEl.remove();
-    }, 500);
-  }, 300);
-}
-
-/* ───── Arranque ───── */
-window.addEventListener("load", function(){
-  console.log("[V22] DOM listo");
-  try { bootstrap(); } catch(e){ fatalError(e); }
-});
-
-})();
-</script>
-</body>
-</html>
+  var name = prompt
