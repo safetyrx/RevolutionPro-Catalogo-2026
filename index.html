@@ -805,22 +805,42 @@ function importNewCatalog(){
 
   if(!nameInput){ status.className = "importStatus err"; status.textContent = "Escribe un nombre."; return; }
   if(!fileInput){ status.className = "importStatus err"; status.textContent = "Selecciona un PDF."; return; }
+  if(typeof pdfjsLib === "undefined"){
+    status.className = "importStatus err";
+    status.textContent = "Librería PDF no disponible.";
+    return;
+  }
 
   status.className = "importStatus";
-  status.textContent = "Leyendo PDF…";
+  status.textContent = "Iniciando...";
+
+  // Barra de progreso
+  var progWrap = document.createElement("div");
+  progWrap.style.cssText = "margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden";
+  var progBar = document.createElement("div");
+  progBar.style.cssText = "height:100%;width:0%;background:#f2c400;transition:width .2s";
+  progWrap.appendChild(progBar);
+  status.parentNode.insertBefore(progWrap, status.nextSibling);
 
   var reader = new FileReader();
+
   reader.onload = function(){
     var typedarray = new Uint8Array(reader.result);
-    var loadingTask = pdfjsLib.getDocument({data: typedarray});
+    var loadingTask = pdfjsLib.getDocument({ data: typedarray });
+
     loadingTask.promise.then(function(pdf){
       var total = pdf.numPages;
       var pages = [];
+
+      // Procesamos de a UNA página, con pausa entre cada una
       var currentPage = 1;
 
-      function processNext(){
+      function processNextPage(){
         if(currentPage > total){
-          status.textContent = "Guardando catálogo…";
+          // ✅ Terminó: guardar
+          status.textContent = "Guardando catálogo...";
+          progBar.style.width = "100%";
+
           var id = "cat_" + Date.now();
           var catalog = {
             id: id,
@@ -833,51 +853,86 @@ function importNewCatalog(){
             positions: {},
             sellerPosition: { x: 50, y: 43 }
           };
+
           idbPut(catalog).then(function(){
             state.catalogIndex.list.push({ id: id, name: catalog.name, createdAt: catalog.createdAt, pages: total });
             state.catalogIndex.activeId = id;
             saveIndex();
             state.activeCatalog = catalog;
+            progWrap.remove();
             closeNewCatalogModal();
             afterLoad();
             showView("catalogManager");
           }).catch(function(e){
             status.className = "importStatus err";
             status.textContent = "Error guardando: " + e.message;
+            progWrap.remove();
           });
           return;
         }
-        status.textContent = "Procesando página " + currentPage + " de " + total + "…";
-        pdf.getPage(currentPage).then(function(page){
-          var viewport = page.getViewport({scale: 1.2});
-          var canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          var ctx = canvas.getContext("2d");
-          page.render({canvasContext: ctx, viewport: viewport}).promise.then(function(){
-            pages.push({ index: currentPage, dataUrl: canvas.toDataURL("image/jpeg", 0.8) });
-            currentPage++;
-            processNext();
+
+        // Mostrar progreso
+        var pct = Math.round((currentPage - 1) / total * 100);
+        progBar.style.width = pct + "%";
+        status.textContent = "Procesando página " + currentPage + " de " + total + " (" + pct + "%)";
+
+        // Forzar render y ceder el hilo para que la UI no se congele
+        setTimeout(function(){
+          pdf.getPage(currentPage).then(function(page){
+            // 🎯 Escala 1.0 en vez de 1.2 = ~30% menos peso
+            var viewport = page.getViewport({ scale: 1.0 });
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.round(viewport.width);
+            canvas.height = Math.round(viewport.height);
+            var ctx = canvas.getContext("2d");
+
+            page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function(){
+              // 🎯 Calidad 0.72 en vez de 0.8 = ~40% menos peso por imagen
+              pages.push({ index: currentPage, dataUrl: canvas.toDataURL("image/jpeg", 0.72) });
+
+              // Limpiar canvas para liberar memoria
+              canvas.width = 0;
+              canvas.height = 0;
+
+              currentPage++;
+              // Pausa de 0ms para que el navegador respire
+              setTimeout(processNextPage, 0);
+            }).catch(function(err){
+              status.className = "importStatus err";
+              status.textContent = "Error en página " + currentPage + ": " + err.message;
+              progWrap.remove();
+            });
+          }).catch(function(err){
+            status.className = "importStatus err";
+            status.textContent = "Error obteniendo página " + currentPage + ": " + err.message;
+            progWrap.remove();
           });
-        }).catch(function(err){
-          status.className = "importStatus err";
-          status.textContent = "Error en página " + currentPage + ": " + err.message;
-        });
+        }, 0);
       }
 
-      processNext();
+      processNextPage();
     }).catch(function(err){
       status.className = "importStatus err";
       status.textContent = "Error al leer PDF: " + err.message;
+      progWrap.remove();
     });
   };
+
   reader.onerror = function(){
     status.className = "importStatus err";
     status.textContent = "Error leyendo archivo.";
+    progWrap.remove();
   };
+
+  reader.onprogress = function(e){
+    if(e.lengthComputable){
+      var pct = Math.round(e.loaded / e.total * 100);
+      status.textContent = "Cargando archivo: " + pct + "%";
+    }
+  };
+
   reader.readAsArrayBuffer(fileInput);
 }
-
 /* ───── Lista de páginas ───── */
 function renderItems(){
   var wrap = $("items");
