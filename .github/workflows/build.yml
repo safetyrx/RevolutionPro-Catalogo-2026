@@ -1,4 +1,4 @@
-name: Build Revolution Pro Catalogo 2026 V20
+name: Build Revolution Pro Catalogo 2026 V21
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
           node-version: 22
 
       - name: Instalar dependencias
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Generar instalador Windows
         run: npx electron-builder --win --x64 --publish never
@@ -25,7 +25,7 @@ jobs:
       - name: Guardar instalador Windows
         uses: actions/upload-artifact@v4
         with:
-          name: Revolution-Pro-Windows-V20
+          name: Revolution-Pro-Windows-V21
           path: dist/*Setup.exe
 
   macos:
@@ -41,7 +41,7 @@ jobs:
           node-version: 22
 
       - name: Instalar dependencias
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Generar aplicación macOS Universal
         run: npx electron-builder --mac --universal --publish never
@@ -49,7 +49,7 @@ jobs:
       - name: Guardar instaladores macOS
         uses: actions/upload-artifact@v4
         with:
-          name: Revolution-Pro-macOS-V20
+          name: Revolution-Pro-macOS-V21
           path: |
             dist/*.dmg
             dist/*.zip
