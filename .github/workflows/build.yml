@@ -1,4 +1,4 @@
-name: Build Revolution Pro Catalogo 2026 V21
+name: Build Revolution Pro Catalogo V22
 
 on:
   workflow_dispatch:
@@ -8,48 +8,36 @@ jobs:
     name: Build Windows
     runs-on: windows-latest
     steps:
-      - name: Descargar proyecto
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
-
       - name: Generar instalador Windows
         run: npx electron-builder --win --x64 --publish never
-
       - name: Guardar instalador Windows
         uses: actions/upload-artifact@v4
         with:
-          name: Revolution-Pro-Windows-V21
+          name: Revolution-Pro-Windows-V22
           path: dist/*Setup.exe
 
   macos:
     name: Build macOS Universal
     runs-on: macos-latest
     steps:
-      - name: Descargar proyecto
-        uses: actions/checkout@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
-
       - name: Generar aplicación macOS Universal
         run: npx electron-builder --mac --universal --publish never
-
       - name: Guardar instaladores macOS
         uses: actions/upload-artifact@v4
         with:
-          name: Revolution-Pro-macOS-V21
+          name: Revolution-Pro-macOS-V22
           path: |
             dist/*.dmg
             dist/*.zip
