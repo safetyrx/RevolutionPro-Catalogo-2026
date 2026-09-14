@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Revolution Pro — Multi-Catálogo V22</title>
+
+<!-- ══════════════ PDF.js desde jsdelivr (NO bloqueado por Edge) ══════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script>
+  if (typeof pdfjsLib !== "undefined") {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+</script>
+
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1f2326;background:#f1f3f4}
@@ -369,32 +378,24 @@ main{min-width:0;overflow:auto}
     </div>
   </div>
 </div>
-<script src="lib/pdf.min.js"></script>
+
 <script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
-</script>
-<script src="lib/pdf.min.js"></script>
-<script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
-</script>
-  <script>
 /* ══════════════════════════════════════════════════════════════
    REVOLUTION PRO — Multi-Catálogo V22
-   Sin dependencias externas. Print nativo del navegador.
+   PDF.js integrado desde jsdelivr.
    ══════════════════════════════════════════════════════════════ */
 
 (function(){
 "use strict";
 
 console.log("[V22] Cargando script principal...");
+console.log("[V22] pdfjsLib disponible:", typeof pdfjsLib);
 
-/* ───── Constantes ───── */
 var LS_INDEX_KEY = "rp_v22_catalogs_index";
 var LS_SELLER_KEY = "rp_v22_seller";
 var IDB_NAME = "revolutionpro_v22";
 var IDB_STORE = "catalogs";
 
-/* ───── Estado global ───── */
 var state = {
   activeCatalog: null,
   catalogIndex: { activeId: null, list: [] },
@@ -404,7 +405,6 @@ var state = {
   positionMode: "none"
 };
 
-/* ───── Utilidades ───── */
 function $(id){ return document.getElementById(id); }
 
 function escapeHtml(s){
@@ -469,7 +469,7 @@ function idbDelete(id){
   });
 }
 
-/* ───── Índice de catálogos (localStorage) ───── */
+/* ───── Índice de catálogos ───── */
 function loadIndex(){
   try {
     var raw = localStorage.getItem(LS_INDEX_KEY);
@@ -479,21 +479,15 @@ function loadIndex(){
 }
 
 function saveIndex(){
-  try {
-    localStorage.setItem(LS_INDEX_KEY, JSON.stringify(state.catalogIndex));
-  } catch(e){ console.warn("No se pudo guardar índice:", e); }
+  try { localStorage.setItem(LS_INDEX_KEY, JSON.stringify(state.catalogIndex)); } catch(e){}
 }
 
 function loadSellerLS(){
-  try {
-    state.seller = JSON.parse(localStorage.getItem(LS_SELLER_KEY) || "{}");
-  } catch(e){ state.seller = {}; }
+  try { state.seller = JSON.parse(localStorage.getItem(LS_SELLER_KEY) || "{}"); } catch(e){ state.seller = {}; }
 }
 
 function saveSellerLS(){
-  try {
-    localStorage.setItem(LS_SELLER_KEY, JSON.stringify(state.seller));
-  } catch(e){ console.warn("No se pudo guardar vendedor:", e); }
+  try { localStorage.setItem(LS_SELLER_KEY, JSON.stringify(state.seller)); } catch(e){}
 }
 
 /* ───── Bootstrap ───── */
@@ -501,13 +495,10 @@ function bootstrap(){
   console.log("[V22] bootstrap() iniciado");
   loadIndex();
   loadSellerLS();
-
   bindAllEvents();
 
   if(state.catalogIndex.list.length === 0){
-    createEmptyStarterCatalog().then(function(){
-      return loadActiveCatalog();
-    }).then(afterLoad).catch(fatalError);
+    createEmptyStarterCatalog().then(loadActiveCatalog).then(afterLoad).catch(fatalError);
   } else {
     loadActiveCatalog().then(afterLoad).catch(fatalError);
   }
@@ -528,7 +519,7 @@ function loadActiveCatalog(){
 }
 
 function afterLoad(){
-  console.log("[V22] afterLoad() — catálogo activo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
+  console.log("[V22] afterLoad() — catálogo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
   fillSellerForm();
   renderCatalogDropdown();
   renderCatalogManager();
@@ -568,16 +559,12 @@ function createEmptyStarterCatalog(){
   });
 }
 
-/* ───── Persistencia del catálogo activo ───── */
 function persistActiveCatalog(){
   if(!state.activeCatalog) return Promise.resolve();
   return idbPut(state.activeCatalog).then(function(){
     var entry = null;
     for(var i = 0; i < state.catalogIndex.list.length; i++){
-      if(state.catalogIndex.list[i].id === state.activeCatalog.id){
-        entry = state.catalogIndex.list[i];
-        break;
-      }
+      if(state.catalogIndex.list[i].id === state.activeCatalog.id){ entry = state.catalogIndex.list[i]; break; }
     }
     if(entry){
       entry.name = state.activeCatalog.name;
@@ -596,56 +583,39 @@ function updateActiveCatalogName(){
 
 /* ───── Bindings ───── */
 function bindAllEvents(){
-  console.log("[V22] bindAllEvents() — enlazando botones");
+  console.log("[V22] bindAllEvents()");
 
-  $("catalogDropdownBtn").addEventListener("click", function(e){
-    e.stopPropagation();
-    toggleCatalogMenu();
-  });
-
-  $("btnNewCatalog").addEventListener("click", function(e){
-    e.stopPropagation();
-    openNewCatalogModal();
-  });
-
+  $("catalogDropdownBtn").addEventListener("click", function(e){ e.stopPropagation(); toggleCatalogMenu(); });
+  $("btnNewCatalog").addEventListener("click", function(e){ e.stopPropagation(); openNewCatalogModal(); });
   $("btnCancelNewCatalog").addEventListener("click", closeNewCatalogModal);
   $("btnImportCatalog").addEventListener("click", importNewCatalog);
-
   $("btnGeneratePDF").addEventListener("click", generatePDF);
   $("btnGeneratePDF2").addEventListener("click", generatePDF);
-
   $("btnPrevPage").addEventListener("click", prevPage);
   $("btnNextPage").addEventListener("click", nextPage);
   $("btnZoomMinus").addEventListener("click", function(){ zoom(-1); });
   $("btnZoomPlus").addEventListener("click", function(){ zoom(1); });
   $("btnFitPage").addEventListener("click", fitPage);
-
   $("movePriceBtn").addEventListener("click", function(){ setCatalogPositionMode("price"); });
   $("moveSellerBtn").addEventListener("click", function(){ setCatalogPositionMode("seller"); });
   $("stopMoveBtn").addEventListener("click", function(){ setCatalogPositionMode("none"); });
-
   $("showPrice").addEventListener("change", renderPage);
   $("pageSearch").addEventListener("input", filterItems);
-
   $("btnAddProduct").addEventListener("click", addCatalogProduct);
   $("btnSaveConfig").addEventListener("click", saveCatalogConfiguration);
 
-  // Nav buttons
   var navs = document.querySelectorAll(".navbtn");
   for(var i = 0; i < navs.length; i++){
     navs[i].addEventListener("click", function(){
-      var view = this.getAttribute("data-view");
-      showView(view);
+      showView(this.getAttribute("data-view"));
     });
   }
 
-  // Vendedor
   ["sName","sCompany","sEmail","sPhone","sWa","sRole","sMsg"].forEach(function(id){
     var el = $(id);
     if(el) el.addEventListener("input", saveSeller);
   });
 
-  // Cerrar menú al click fuera
   document.addEventListener("click", function(e){
     var wrap = document.querySelector(".catalogDropdownWrap");
     if(wrap && !wrap.contains(e.target)){
@@ -654,7 +624,6 @@ function bindAllEvents(){
     }
   });
 
-  // Cerrar modal al click fuera
   $("newCatalogModal").addEventListener("click", function(e){
     if(e.target === this) closeNewCatalogModal();
   });
@@ -700,7 +669,6 @@ function renderCatalogDropdown(){
         '<button title="Duplicar" data-act="duplicate">⎘</button>' +
         '<button title="Eliminar" data-act="delete">✕</button>' +
       '</div>';
-
     div.addEventListener("click", function(e){
       var act = e.target.getAttribute("data-act");
       if(act === "rename"){ e.stopPropagation(); renameCatalog(cat.id); return; }
@@ -708,19 +676,13 @@ function renderCatalogDropdown(){
       if(act === "delete"){ e.stopPropagation(); deleteCatalog(cat.id); return; }
       switchCatalog(cat.id);
     });
-
     list.appendChild(div);
   });
 }
 
 function switchCatalog(id){
-  if(state.activeCatalog && state.activeCatalog.id === id){
-    toggleCatalogMenu();
-    return;
-  }
-  persistActiveCatalog().then(function(){
-    return idbGet(id);
-  }).then(function(c){
+  if(state.activeCatalog && state.activeCatalog.id === id){ toggleCatalogMenu(); return; }
+  persistActiveCatalog().then(function(){ return idbGet(id); }).then(function(c){
     if(c){
       state.activeCatalog = c;
       state.catalogIndex.activeId = id;
@@ -794,6 +756,9 @@ function openNewCatalogModal(){
   $("newCatalogPdf").value = "";
   $("newCatalogStatus").textContent = "";
   $("newCatalogStatus").className = "importStatus";
+  // Remover barra de progreso previa si existe
+  var old = document.getElementById("pdfProgressWrap");
+  if(old) old.remove();
   $("newCatalogModal").classList.add("open");
 }
 
@@ -810,15 +775,18 @@ function importNewCatalog(){
   if(!fileInput){ status.className = "importStatus err"; status.textContent = "Selecciona un PDF."; return; }
   if(typeof pdfjsLib === "undefined"){
     status.className = "importStatus err";
-    status.textContent = "Librería PDF no disponible.";
+    status.textContent = "Librería PDF no disponible. Revisa tu conexión a internet.";
     return;
   }
 
   status.className = "importStatus";
   status.textContent = "Iniciando...";
 
-  // Barra de progreso
+  var old = document.getElementById("pdfProgressWrap");
+  if(old) old.remove();
+
   var progWrap = document.createElement("div");
+  progWrap.id = "pdfProgressWrap";
   progWrap.style.cssText = "margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden";
   var progBar = document.createElement("div");
   progBar.style.cssText = "height:100%;width:0%;background:#f2c400;transition:width .2s";
@@ -827,6 +795,13 @@ function importNewCatalog(){
 
   var reader = new FileReader();
 
+  reader.onprogress = function(e){
+    if(e.lengthComputable){
+      var pct = Math.round(e.loaded / e.total * 100);
+      status.textContent = "Cargando archivo: " + pct + "%";
+    }
+  };
+
   reader.onload = function(){
     var typedarray = new Uint8Array(reader.result);
     var loadingTask = pdfjsLib.getDocument({ data: typedarray });
@@ -834,13 +809,10 @@ function importNewCatalog(){
     loadingTask.promise.then(function(pdf){
       var total = pdf.numPages;
       var pages = [];
-
-      // Procesamos de a UNA página, con pausa entre cada una
       var currentPage = 1;
 
       function processNextPage(){
         if(currentPage > total){
-          // ✅ Terminó: guardar
           status.textContent = "Guardando catálogo...";
           progBar.style.width = "100%";
 
@@ -874,15 +846,12 @@ function importNewCatalog(){
           return;
         }
 
-        // Mostrar progreso
         var pct = Math.round((currentPage - 1) / total * 100);
         progBar.style.width = pct + "%";
         status.textContent = "Procesando página " + currentPage + " de " + total + " (" + pct + "%)";
 
-        // Forzar render y ceder el hilo para que la UI no se congele
         setTimeout(function(){
           pdf.getPage(currentPage).then(function(page){
-            // 🎯 Escala 1.0 en vez de 1.2 = ~30% menos peso
             var viewport = page.getViewport({ scale: 1.0 });
             var canvas = document.createElement("canvas");
             canvas.width = Math.round(viewport.width);
@@ -890,15 +859,10 @@ function importNewCatalog(){
             var ctx = canvas.getContext("2d");
 
             page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function(){
-              // 🎯 Calidad 0.72 en vez de 0.8 = ~40% menos peso por imagen
               pages.push({ index: currentPage, dataUrl: canvas.toDataURL("image/jpeg", 0.72) });
-
-              // Limpiar canvas para liberar memoria
               canvas.width = 0;
               canvas.height = 0;
-
               currentPage++;
-              // Pausa de 0ms para que el navegador respire
               setTimeout(processNextPage, 0);
             }).catch(function(err){
               status.className = "importStatus err";
@@ -927,15 +891,9 @@ function importNewCatalog(){
     progWrap.remove();
   };
 
-  reader.onprogress = function(e){
-    if(e.lengthComputable){
-      var pct = Math.round(e.loaded / e.total * 100);
-      status.textContent = "Cargando archivo: " + pct + "%";
-    }
-  };
-
   reader.readAsArrayBuffer(fileInput);
 }
+
 /* ───── Lista de páginas ───── */
 function renderItems(){
   var wrap = $("items");
@@ -1255,10 +1213,7 @@ function assignProduct(pageNum){
   for(var i = 0; i < state.activeCatalog.products.length; i++){
     if(state.activeCatalog.products[i].page === pageNum){ prod = state.activeCatalog.products[i]; break; }
   }
-  if(!prod || !prod.name){
-    alert("Escribe un nombre para el producto.");
-    return;
-  }
+  if(!prod || !prod.name){ alert("Escribe un nombre para el producto."); return; }
   persistActiveCatalog().then(function(){
     renderItems();
     renderCatalogManager();
@@ -1284,8 +1239,7 @@ function addCatalogProduct(){
   if(!pageStr) return;
   var pageNum = parseInt(pageStr, 10);
   if(!pageNum || pageNum < 1 || pageNum > state.activeCatalog.pages.length){
-    alert("Número de página inválido.");
-    return;
+    alert("Número de página inválido."); return;
   }
   var name = prompt("Nombre del producto:");
   if(!name) return;
@@ -1333,18 +1287,12 @@ function bindPositionDrag(){
   var dragging = null;
 
   function onDown(e){
-    // Ignorar si el click viene desde un input, textarea, select o button
     var tag = (e.target.tagName || "").toLowerCase();
     if(tag === "input" || tag === "textarea" || tag === "select" || tag === "button") return;
-
     var target = e.target.closest ? e.target.closest(".positionEditable") : null;
     if(!target) return;
     e.preventDefault();
-    dragging = {
-      el: target,
-      isPrice: target.id === "priceBadge",
-      isSeller: target.id === "sellerOverlay"
-    };
+    dragging = { el: target, isPrice: target.id === "priceBadge", isSeller: target.id === "sellerOverlay" };
     target.style.cursor = "grabbing";
   }
 
@@ -1362,15 +1310,12 @@ function bindPositionDrag(){
     var cy = Math.max(0, Math.min(100, y));
     dragging.el.style.left = cx + "%";
     dragging.el.style.top = cy + "%";
-
     if(dragging.isPrice){
       var prod = null;
       for(var i = 0; i < state.activeCatalog.products.length; i++){
         if(state.activeCatalog.products[i].page === state.page){ prod = state.activeCatalog.products[i]; break; }
       }
-      if(prod){
-        state.activeCatalog.positions[prod.name] = { x: cx, y: cy };
-      }
+      if(prod) state.activeCatalog.positions[prod.name] = { x: cx, y: cy };
     } else if(dragging.isSeller){
       state.activeCatalog.sellerPosition = { x: cx, y: cy };
     }
@@ -1402,7 +1347,6 @@ function generatePDF(){
 
   var totalPages = state.activeCatalog.pages.length;
 
-  // Estilos específicos para print
   var styleEl = document.createElement("style");
   styleEl.textContent =
     "@page{size:letter;margin:0}" +
@@ -1416,19 +1360,16 @@ function generatePDF(){
     ".printSellerBlock b{font-size:10pt;display:block}" +
     ".printSellerBlock span{font-weight:700;display:block}" +
     "@media print{body>*:not(#printRoot){display:none!important}#printRoot{position:static!important}}";
-
   document.head.appendChild(styleEl);
 
   state.activeCatalog.pages.forEach(function(p, idx){
     var wrapper = document.createElement("div");
     wrapper.className = "printPageWrapper";
-    wrapper.style.position = "relative";
 
     var img = document.createElement("img");
     img.src = p.dataUrl;
     wrapper.appendChild(img);
 
-    // Precio
     var prod = null;
     for(var i = 0; i < state.activeCatalog.products.length; i++){
       if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
@@ -1451,7 +1392,6 @@ function generatePDF(){
       }
     }
 
-    // Vendedor en la última página
     if(idx === totalPages - 1){
       var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
       var parts = [];
@@ -1461,7 +1401,6 @@ function generatePDF(){
       if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
       if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
       if(state.seller.msg) parts.push("<span>" + escapeHtml(state.seller.msg) + "</span>");
-
       if(parts.length){
         var block = document.createElement("div");
         block.className = "printSellerBlock";
@@ -1491,11 +1430,7 @@ function generatePDF(){
 /* ───── Arranque ───── */
 window.addEventListener("load", function(){
   console.log("[V22] DOM listo");
-  try {
-    bootstrap();
-  } catch(e){
-    fatalError(e);
-  }
+  try { bootstrap(); } catch(e){ fatalError(e); }
 });
 
 })();
