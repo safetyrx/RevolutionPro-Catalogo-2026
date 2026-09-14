@@ -7,18 +7,29 @@ jobs:
   windows:
     name: Build Windows
     runs-on: windows-latest
+    env:
+      ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Configurar mirror de Electron
-        shell: bash
-        run: echo "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/" >> $GITHUB_ENV
+
+      - name: Cachear binarios de electron-builder
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/electron-builder/Cache
+          key: ${{ runner.os }}-eb-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-eb-
+
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
+
       - name: Generar instalador Windows
         run: npx electron-builder --win --x64 --publish never
+
       - name: Guardar instalador Windows
         uses: actions/upload-artifact@v4
         with:
@@ -28,15 +39,29 @@ jobs:
   macos:
     name: Build macOS Universal
     runs-on: macos-latest
+    env:
+      ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Cachear binarios de electron-builder
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/electron-builder
+          key: ${{ runner.os }}-eb-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-eb-
+
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
+
       - name: Generar aplicación macOS Universal
         run: npx electron-builder --mac --universal --publish never
+
       - name: Guardar instaladores macOS
         uses: actions/upload-artifact@v4
         with:
