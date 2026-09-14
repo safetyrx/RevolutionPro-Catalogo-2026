@@ -369,7 +369,10 @@ main{min-width:0;overflow:auto}
     </div>
   </div>
 </div>
-
+<script src="lib/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
+</script>
 <script src="lib/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
