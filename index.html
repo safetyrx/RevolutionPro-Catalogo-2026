@@ -370,7 +370,11 @@ main{min-width:0;overflow:auto}
   </div>
 </div>
 
+<script src="lib/pdf.min.js"></script>
 <script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "lib/pdf.worker.min.js";
+</script>
+  <script>
 /* ══════════════════════════════════════════════════════════════
    REVOLUTION PRO — Multi-Catálogo V22
    Sin dependencias externas. Print nativo del navegador.
@@ -801,11 +805,6 @@ function importNewCatalog(){
 
   if(!nameInput){ status.className = "importStatus err"; status.textContent = "Escribe un nombre."; return; }
   if(!fileInput){ status.className = "importStatus err"; status.textContent = "Selecciona un PDF."; return; }
-  if(typeof pdfjsLib === "undefined"){
-    status.className = "importStatus err";
-    status.textContent = "Librería PDF no disponible. Revisa tu conexión.";
-    return;
-  }
 
   status.className = "importStatus";
   status.textContent = "Leyendo PDF…";
