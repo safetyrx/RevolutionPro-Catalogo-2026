@@ -1,7 +1,7 @@
 {
   "name": "revolutionpro-catalogo-2026",
-  "version": "1.1.0",
-  "description": "Revolution Pro - Catálogo Ropa 2026 - V20",
+  "version": "1.2.0",
+  "description": "Revolution Pro - Catálogo Ropa 2026 - V21 con actualización de catálogo por PDF",
   "main": "main.js",
   "author": "Revolution Pro",
   "license": "ISC",
@@ -26,13 +26,16 @@
       "main.js",
       "preload.js",
       "icon.ico",
-      "icon.png"
+      "icon.png",
+      "node_modules/pdfjs-dist/**/*"
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "icon.ico",
@@ -48,11 +51,15 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["universal"]
+          "arch": [
+            "universal"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["universal"]
+          "arch": [
+            "universal"
+          ]
         }
       ],
       "icon": "icon.png",
@@ -64,5 +71,8 @@
       "title": "Revolution Pro Catálogo 2026"
     },
     "asar": true
+  },
+  "dependencies": {
+    "pdfjs-dist": "4.10.38"
   }
 }
