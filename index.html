@@ -432,7 +432,7 @@ main{min-width:0;overflow:auto}
 
 <div id="printRoot"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+< src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════
@@ -1106,21 +1106,33 @@ function bindPositionDrag(){
   let dragging = null;
 
   function onDown(e){
-    const pb = document.getElementById("priceBadge");
-    const so = document.getElementById("sellerOverlay");
-    const target = e.target.closest('.positionEditable');
-    if(!target) return;
-    e.preventDefault();
-    dragging = {
-      el: target,
-      isPrice: target.id === 'priceBadge',
-      isSeller: target.id === 'sellerOverlay'
-    };
-    target.style.cursor = "grabbing";
+  // ⚠️ FIX: ignorar clicks sobre inputs, textareas, selects o botones
+  const tag = (e.target.tagName || "").toLowerCase();
+  if(tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'button'){
+    return;
   }
+  // Solo actuar si realmente el usuario está sobre un elemento posicionable
+  const target = e.target.closest('.positionEditable');
+  if(!target) return;
+  e.preventDefault();
+  dragging = {
+    el: target,
+    isPrice: target.id === 'priceBadge',
+    isSeller: target.id === 'sellerOverlay'
+  };
+  target.style.cursor = "grabbing";
+}
 
   function onMove(e){
-    if(!dragging) return;
+  if(!dragging) return;      // ya estaba
+  // ⚠️ FIX: no bloquear eventos si el usuario está escribiendo en un input
+  const tag = (e.target.tagName || "").toLowerCase();
+  if(tag === 'input' || tag === 'textarea') return;
+
+  e.preventDefault();
+  const rect = pw.getBoundingClientRect();
+  // … resto igual
+}
     e.preventDefault();
     const rect = pw.getBoundingClientRect();
     const x = ((e.touches ? e.touches[0].clientX : e.clientX) - rect.left) / rect.width * 100;
