@@ -524,43 +524,44 @@ async function bootstrap(){
   loadIndex();
   loadSellerLS();
 
-  // Si no hay catálogos, ofrecer crear uno de ejemplo vacío
+  // 1) PRIMERO enlazamos la UI — así aunque algo falle, los botones responden
+  bindNav();
+  bindPositionDrag();
+  bindModalOutsideClicks();
+
+  // 2) Después cargamos datos
   if(state.catalogIndex.list.length === 0){
-    await createEmptyStarterCatalog();
+    try {
+      await createEmptyStarterCatalog();
+    } catch(e){
+      console.error("No se pudo crear catálogo starter:", e);
+    }
   }
 
-  // Cargar el activo
-  const activeId = state.catalogIndex.activeId || state.catalogIndex.list[0].id;
-  await loadCatalog(activeId);
+  const activeId = state.catalogIndex.activeId || (state.catalogIndex.list[0] && state.catalogIndex.list[0].id);
+  if(activeId){
+    try {
+      await loadCatalog(activeId);
+    } catch(e){
+      console.error("No se pudo cargar catálogo:", e);
+    }
+  }
 
-  // Poblar formulario vendedor
   fillSellerForm();
   renderCatalogDropdown();
   renderCatalogManager();
   renderItems();
   renderPage();
   renderProductEditor();
-  bindNav();
-  bindPositionDrag();
 }
 
-async function createEmptyStarterCatalog(){
-  const id = "cat_" + Date.now();
-  const catalog = {
-    id,
-    name: "Ropa 2026",
-    createdAt: Date.now(),
-    meta: { pages: 0 },
-    pages: [],        // [{index, dataUrl}]
-    products: [],     // [{page, name, allowPrice, allowOffer}]
-    prices: {},       // { name: {normal, offer, show} }
-    positions: {},    // { name: {x,y} }
-    sellerPosition: {x:50, y:43}
-  };
-  await idbPut(catalog);
-  state.catalogIndex.list.push({ id, name: catalog.name, createdAt: catalog.createdAt, pages: 0 });
-  state.catalogIndex.activeId = id;
-  saveIndex();
+function bindModalOutsideClicks(){
+  document.addEventListener('click', e => {
+    const modal = document.getElementById('newCatalogModal');
+    if(modal && modal.classList.contains('open') && e.target === modal){
+      modal.classList.remove('open');
+    }
+  });
 }
 
 /* ══════════════ Cargar catálogo ══════════════ */
@@ -1243,20 +1244,64 @@ function escapeHtml(s){
 }
 function escapeAttr(s){ return escapeHtml(s).replace(/'/g, "\\'"); }
 
-/* ══════════════ Arranque ══════════════ */
+/* ══════════════ Helpers ══════════════ */
+function escapeHtml(s){
+  if(s === undefined || s === null) return "";
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){
+  if(s === undefined || s === null) return "";
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+/* ══════════════ Arranque blindado ══════════════ */
 window.addEventListener("load", () => {
   // Cerrar menú desplegable al hacer click fuera
   document.addEventListener('click', e => {
     const wrap = document.querySelector('.catalogDropdownWrap');
     if(wrap && !wrap.contains(e.target)){
-      document.getElementById('catalogDropdownMenu').classList.remove('open');
+      const m = document.getElementById('catalogDropdownMenu');
+      if(m) m.classList.remove('open');
     }
   });
-  bootstrap().catch(err => {
-    console.error(err);
-    alert("Error al iniciar la aplicación: " + err.message);
-  });
+
+  // Timeout para dar tiempo a que pdfjsLib cargue desde el CDN
+  let waited = 0;
+  const checkLibs = setInterval(() => {
+    waited += 100;
+    if(typeof pdfjsLib !== 'undefined' && window.jspdf){
+      clearInterval(checkLibs);
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      } catch(e){ console.warn("No se pudo setear worker de pdf.js", e); }
+      startApp();
+    } else if(waited > 8000){
+      clearInterval(checkLibs);
+      console.warn("pdf.js o jsPDF no cargaron desde CDN, arrancando igual (solo afecta importar/exportar PDF).");
+      startApp();
+    }
+  }, 100);
 });
+
+function startApp(){
+  try {
+    bootstrap().catch(err => {
+      console.error("Error en bootstrap:", err);
+      showFatalError("Error al iniciar: " + err.message);
+    });
+  } catch(err){
+    console.error("Error sincrónico al iniciar:", err);
+    showFatalError("Error al iniciar: " + err.message);
+  }
+}
+
+function showFatalError(msg){
+  const div = document.createElement('div');
+  div.style.cssText = "position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#b42318;color:#fff;padding:14px 22px;border-radius:10px;z-index:9999;font-size:13px;font-weight:600;box-shadow:0 8px 24px #0004;max-width:90%;text-align:center";
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 15000);
+}
 </script>
 </body>
 </html>
