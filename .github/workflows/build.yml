@@ -12,6 +12,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Configurar mirror de Electron
+        shell: bash
+        run: echo "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/" >> $GITHUB_ENV
       - name: Instalar dependencias
         run: npm install --no-audit --no-fund
       - name: Generar instalador Windows
