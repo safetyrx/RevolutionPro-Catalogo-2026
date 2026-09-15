@@ -1,1722 +1,221 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Revolution Pro — Multi-Catálogo V23</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Técnico - Indumentaria Minera e Industria</title>
+    <style>
+        :root {
+            --primary-color: #f39c12; /* Color estilo industrial/maquinaria */
+            --dark-color: #2c3e50;
+            --light-bg: #f8f9fa;
+        }
 
-<!-- ══════════════ PDF.js desde jsdelivr ══════════════ -->
-<!-- Rutas locales apuntando a la versión instalada en tu proyecto -->
-<script src="./node_modules/pdfjs-dist/build/pdf.min.js"></script>
-<script src="./node_modules/pdfjs-dist/build/pdf.worker.min.js"></script>
-<script>
-  if (typeof pdfjsLib !== "undefined") {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-  }
-</script>
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e9ecef;
+            color: #333;
+        }
 
-<!-- ══════════════ jsPDF desde jsdelivr (para guardar PDF) ══════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+        /* --- UI CONTROLES (No se imprimen) --- */
+        .toolbar {
+            background-color: var(--dark-color);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-<style>
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1f2326;background:#f1f3f4}
-body{overflow:hidden}
+        .toolbar h2 { margin: 0; font-size: 1.2rem; font-weight: 400; }
 
-.topbar{height:70px;background:#fff;border-bottom:1px solid #dfe3e6;display:flex;align-items:center;padding:0 18px;gap:14px;position:relative;z-index:20}
-.brand{display:flex;align-items:center;gap:10px;min-width:200px}
-.rpmark{width:38px;height:38px;border-radius:7px;background:#f2c400;display:grid;place-items:center;font-weight:950;color:#161616}
-.brand b{font-size:12px;letter-spacing:.04em}
-.brand span{display:block;color:#7a8085;font-size:9px;letter-spacing:.1em;margin-top:3px}
-.topbar nav{display:flex;gap:2px;margin-left:auto}
-.navbtn{border:0;background:transparent;padding:9px 11px;border-radius:7px;cursor:pointer;color:#666;font-weight:700}
-.navbtn.active{background:#f0f2f3;color:#1f2326}
-.primary{background:#f2c400;color:#161616;border:0;border-radius:7px;padding:10px 14px;font-weight:900;cursor:pointer}
-.secondary{border:1px solid #d5d9dc;background:#fff;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer}
-.success{background:#16825d;color:#fff;border:0;border-radius:7px;padding:10px 14px;font-weight:900;cursor:pointer}
-.success:hover{background:#1a9b6e}
+        .btn-action {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
 
-.catalogDropdownWrap{position:relative}
-.catalogDropdownBtn{display:flex;align-items:center;gap:8px;background:#f7f8f9;border:1px solid #d8dcdf;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:800;color:#1f2326;cursor:pointer;max-width:240px}
-.catalogDropdownBtn small{font-size:9px;font-weight:700;color:#7a8085;letter-spacing:.08em;display:block}
-.catalogDropdownBtn .chev{font-size:10px;color:#888;margin-left:4px}
-.catalogDropdownMenu{position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid #dfe3e6;border-radius:8px;box-shadow:0 8px 22px #0002;min-width:280px;padding:6px;z-index:100;display:none}
-.catalogDropdownMenu.open{display:block}
-.catalogDropdownItem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:6px;font-size:11px;cursor:pointer}
-.catalogDropdownItem:hover{background:#f5f6f7}
-.catalogDropdownItem.active{background:#fff8dc;border:1px solid #f2c400}
-.catalogDropdownItem b{font-weight:800;color:#1f2326}
-.catalogDropdownItem small{display:block;font-size:9px;color:#888;font-weight:600;margin-top:2px}
-.catalogDropdownItem .actions{display:flex;gap:2px}
-.catalogDropdownItem .actions button{border:0;background:transparent;cursor:pointer;color:#888;font-size:13px;padding:3px 5px;border-radius:4px}
-.catalogDropdownItem .actions button:hover{background:#eee;color:#202326}
-.catalogDropdownFooter{border-top:1px solid #edf0f1;padding:6px;margin-top:4px}
-.catalogDropdownFooter button{width:100%;background:#202326;color:#f2c400;border:0;border-radius:6px;padding:8px;font-size:11px;font-weight:800;cursor:pointer}
+        .btn-action:hover { background-color: #e67e22; }
+        .btn-action:disabled { background-color: #95a5a6; cursor: not-allowed; }
 
-.app{height:calc(100vh - 70px);display:grid;grid-template-columns:235px 1fr 300px}
-.left,.right{background:#fff}
-.left{border-right:1px solid #dfe3e6;overflow:auto}
-.right{border-left:1px solid #dfe3e6;overflow:auto}
-.lefthead{display:flex;justify-content:space-between;padding:18px 14px 10px}
-.lefthead span{font-size:10px;color:#92979b}
-.searchwrap{margin:0 12px 12px;border:1px solid #d7dadd;border-radius:7px;padding:7px 9px;color:#8b9196;display:flex;gap:6px}
-.searchwrap input{border:0;outline:0;width:100%;font-size:12px}
-.items{padding:0 9px 20px;display:flex;flex-direction:column;gap:3px}
-.item{border:1px solid transparent;background:transparent;display:flex;align-items:center;gap:8px;padding:5px;border-radius:7px;text-align:left;cursor:pointer}
-.item.active{background:#f5f6f7;border-color:#f2c400}
-.item img{width:42px;height:55px;object-fit:cover;border:1px solid #e3e5e7;background:#f4f5f6}
-.item b{font-size:10px;display:block}
-.item small{font-size:9px;color:#8a9095;display:block;margin-top:3px}
-main{min-width:0;overflow:auto}
-.view{display:none;min-height:100%}
-.view.active{display:block}
+        /* --- DISEÑO DEL CATÁLOGO --- */
+        .catalog-page {
+            background-color: white;
+            width: 210mm; /* Ancho exacto A4 */
+            min-height: 297mm; /* Alto exacto A4 */
+            margin: 20px auto;
+            padding: 40px;
+            box-sizing: border-box;
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+        }
 
-.toolbar{height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
-.toolbar small,.sectionTitle small,.righthead small{font-size:9px;letter-spacing:.14em;font-weight:900;color:#7b8186}
-.toolbar h1,.sectionTitle h2{font-size:18px;margin:3px 0}
-.tools{display:flex;align-items:center;gap:3px}
-.tools button{background:#fff;border:1px solid #d8dcdf;padding:9px 11px;border-radius:7px;cursor:pointer;color:#666;font-weight:700}
-.tools span{font-size:11px;min-width:42px;text-align:center}
+        .catalog-header {
+            text-align: center;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
 
-.stage{min-height:calc(100vh - 180px);display:grid;place-items:center;background:#d9dcde;padding:20px;overflow:auto;position:relative}
-.pagewrap{width:612px;height:792px;position:relative;box-shadow:0 5px 22px #0003;flex:none;background:#fff}
-.pagewrap img{width:100%;height:100%;display:block}
-.priceBadge{position:absolute;transform:translate(-50%,-50%);background:#fff;color:#eead00;border:1.5px solid #202020;border-radius:0;padding:5px 9px 6px;min-width:164px;text-align:center;line-height:1.06;box-sizing:border-box}
-.priceBadge .normal,.priceBadge .offer{display:block;font-size:10px;font-weight:900;letter-spacing:.01em;white-space:nowrap}
-.priceBadge .note{display:block;font-size:6.5px;font-style:italic;font-weight:500;margin-top:3px;white-space:nowrap}
-.sellerOverlay{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);width:230px;background:#fff;color:#202020;border:1.5px solid #202020;border-radius:0;padding:9px 12px;text-align:center;display:flex;flex-direction:column;font-size:8.5px;line-height:1.45;box-sizing:border-box}
-.sellerOverlay b{font-size:10px}
-.sellerOverlay span{font-weight:700}
-.hidden{display:none!important}
+        .catalog-header h1 {
+            color: var(--dark-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+        }
 
-.catalogPositionBar{margin:0 22px 10px;background:#fff;border:1px solid #dfe3e6;border-radius:9px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:15px;box-shadow:0 1px 2px #00000008}
-.positionModeInfo{display:flex;align-items:center;gap:9px;min-width:0}
-.positionModeInfo b{font-size:11px;white-space:nowrap}
-.positionModeInfo span{font-size:10px;color:#777d82;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.catalogPositionActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.positionModeBtn{border:1px solid #d3d8dc;background:#fff;color:#34383b;border-radius:6px;padding:7px 10px;font-size:10px;font-weight:800;cursor:pointer}
-.positionModeBtn:hover{border-color:#b8bec3;background:#f8f9fa}
-.positionModeBtn.active{background:#202326;color:#f2c400;border-color:#202326}
-.positionModeBtn.muted{color:#70767b}
+        .catalog-header p { color: #666; font-size: 1.1rem; }
 
-.positionEditable{cursor:grab!important;outline:2px dashed #f2c400;outline-offset:3px;box-shadow:0 0 0 4px #f2c40022}
-.positionEditable:active{cursor:grabbing!important}
-.pagewrap .priceBadge,.pagewrap .sellerOverlay{z-index:10}
-.pagewrap{user-select:none}
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
 
-.underbar{height:42px;display:flex;align-items:center;gap:18px;padding:0 22px;font-size:10px;color:#70767b;background:#fff;border-top:1px solid #dfe3e6}
-.underbar span:last-child{margin-left:auto}
+        .product-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: var(--light-bg);
+        }
 
-.content{padding:28px;max-width:1200px;margin:auto}
-.content.narrow{max-width:900px}
-.sectionTitle{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:12px;flex-wrap:wrap}
-.sectionTitle p{margin:5px 0;color:#777d82;font-size:12px}
-.notice{background:#fff9dc;border:1px solid #eadb83;border-radius:8px;padding:11px 13px;font-size:11px;margin-bottom:14px}
+        .product-image {
+            width: 100%;
+            height: 250px;
+            background-color: white;
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            margin-bottom: 15px;
+            /* Aquí irán tus renders 3D con fondo blanco */
+        }
 
-.formcard{background:#fff;border:1px solid #dfe3e6;border-radius:10px;padding:20px}
-.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
-.formgrid label{font-size:10px;font-weight:800}
-.formgrid input,.formgrid textarea,.formgrid select{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #d4d8db;border-radius:7px;font:inherit}
-.formgrid textarea{min-height:90px;resize:vertical}
-.full{grid-column:1/-1}
+        .product-title {
+            font-size: 1.2rem;
+            color: var(--dark-color);
+            margin-top: 0;
+            border-left: 4px solid var(--primary-color);
+            padding-left: 10px;
+        }
 
-.productEditor{background:#fff;border:1px solid #dfe3e6;border-radius:10px;overflow:hidden}
-.priceLegend{display:grid;grid-template-columns:1fr 125px 125px 42px 55px;gap:8px;padding:10px 12px;font-size:10px;font-weight:900;color:#7b8186;border-bottom:1px solid #edf0f1;background:#fafbfb}
-.prodrow{display:grid;grid-template-columns:1fr 125px 125px 42px 55px;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #edf0f1}
-.prodrow:last-child{border-bottom:0}
-.prodname b{font-size:11px}
-.prodname small{display:block;color:#83898e;font-size:9px;margin-top:3px}
-.prodrow input{padding:8px;border:1px solid #d5d9dc;border-radius:6px}
-.save{border:1px solid #202326;background:#202326;color:#fff;border-radius:6px;padding:7px 5px;font-size:10px;font-weight:700;cursor:pointer}
-.switch input{display:none}
-.switch span{display:block;width:32px;height:18px;background:#c9ced2;border-radius:20px;position:relative;cursor:pointer}
-.switch span:after{content:'';width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:.15s}
-.switch input:checked+span{background:#35a66e}
-.switch input:checked+span:after{left:16px}
+        .tech-specs {
+            list-style: none;
+            padding: 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
 
-.catalogManager{background:#fff;border:1px solid #dfe3e6;border-radius:10px;overflow:hidden}
-.catalogManagerHead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px;border-bottom:1px solid #edf0f1;flex-wrap:wrap}
-.catalogManagerHead b{font-size:13px}
-.catalogManagerHead span{font-size:10px;color:#7c8287}
-.catalogManagerActions{display:flex;gap:8px;flex-wrap:wrap}
-.catalogSummary{padding:12px 15px;background:#f7f8f9;border-bottom:1px solid #edf0f1;font-size:10px;color:#686f74}
-.catalogProductList{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;background:#fafbfb;border-bottom:1px solid #edf0f1}
-.catalogProductChip{background:#fff;border:1px solid #dfe3e6;border-radius:7px;padding:8px;font-size:10px;display:flex;justify-content:space-between;gap:8px}
-.catalogProductChip button{border:0;background:transparent;color:#777;cursor:pointer;font-weight:800}
-.catalogPageRow{display:grid;grid-template-columns:58px 1fr 180px 200px;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid #edf0f1}
-.catalogPageRow img{width:42px;height:55px;object-fit:cover;border:1px solid #ddd;background:#f4f5f6}
-.catalogPageRow b{font-size:11px}
-.catalogPageRow small{display:block;color:#83898e;font-size:9px;margin-top:3px}
-.catalogPageRow select,.catalogProductName{width:100%;padding:8px;border:1px solid #d5d9dc;border-radius:6px;background:#fff;font:inherit;font-size:10px}
-.catalogPageRow .newprod{display:flex;gap:5px}
-.catalogPageRow .newprod button{white-space:nowrap;border:1px solid #d5d9dc;background:#fff;border-radius:6px;padding:7px 10px;font-size:10px;font-weight:700;cursor:pointer}
-.importStatus{margin-top:10px;font-size:10px;color:#6f767b}
-.importStatus.ok{color:#2e8b57}
-.importStatus.err{color:#b42318}
+        .tech-specs li { margin-bottom: 8px; }
+        .tech-specs li strong { color: var(--dark-color); }
 
-.modalBack{position:fixed;inset:0;background:#0007;z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
-.modalBack.open{display:flex}
-.modal{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:24px;box-shadow:0 20px 60px #0004;max-height:90vh;overflow:auto}
-.modal h3{margin:0 0 6px;font-size:16px}
-.modal p{margin:0 0 18px;color:#777;font-size:12px}
-.modal label{display:block;font-size:10px;font-weight:900;color:#7b8186;letter-spacing:.08em;margin-bottom:5px}
-.modal input[type=text]{width:100%;padding:10px;border:1px solid #d5d9dc;border-radius:7px;font-size:13px;margin-bottom:14px;font:inherit}
-.modal input[type=file]{width:100%;padding:10px;border:1px dashed #d5d9dc;border-radius:7px;font-size:11px;margin-bottom:14px;background:#fafbfb}
-.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
-
-.emptyDetail{text-align:center;padding:70px 20px;color:#858b90}
-.emptyDetail div{font-size:30px}
-.emptyDetail b{display:block;color:#4d5358;margin-top:10px}
-.emptyDetail p{font-size:11px}
-
-.righthead{height:50px;border-bottom:1px solid #edf0f1;display:flex;align-items:center;justify-content:space-between;padding:0 15px}
-.righthead button{border:0;background:transparent;font-size:18px;cursor:pointer;color:#777}
-.detailImg{padding:15px;background:#f1f3f4}
-.detailImg img{width:100%;display:block;max-height:300px;object-fit:contain;background:#fff}
-.right #detail{padding-bottom:20px}
-.right #detail>small,.right #detail>h2,.right #detail>p,.right #detail>dl,.lockedbox{margin-left:15px;margin-right:15px}
-.right #detail>small{display:block;margin-top:16px;font-size:9px;letter-spacing:.12em;font-weight:900;color:#858b90}
-.right h2{font-size:19px;margin-top:5px;margin-bottom:5px}
-.right p{font-size:11px;color:#6d7378;line-height:1.5}
-.right dl{margin-top:14px;border-top:1px solid #e7eaec}
-.right dl div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edf0f1}
-.right dt,.right dd{font-size:10px;margin:0}
-.right dt{color:#858b90}
-.lockedbox{background:#f5f6f7;border-radius:7px;padding:10px;font-size:10px;font-weight:700;margin-top:15px}
-
-@media(max-width:1100px){
-  .app{grid-template-columns:190px 1fr}
-  .right{display:none}
-  .topbar nav{display:none}
-  .formgrid{grid-template-columns:1fr}
-  .full{grid-column:auto}
-}
-@media(max-width:760px){
-  body{overflow:auto}
-  .topbar{height:auto;min-height:62px;flex-wrap:wrap;padding:8px}
-  .app{height:auto;display:block}
-  .left{height:180px;border-right:0;border-bottom:1px solid #ddd}
-  .items{display:grid;grid-auto-flow:column;grid-auto-columns:110px;overflow-x:auto;grid-template-rows:1fr 1fr}
-}
-</style>
+        /* --- REGLAS DE IMPRESIÓN PARA EL MOTOR DE ELECTRON --- */
+        @media print {
+            body { background-color: white !important; }
+            .toolbar { display: none !important; }
+            .catalog-page { 
+                margin: 0; 
+                padding: 20mm; 
+                box-shadow: none; 
+                width: 100%;
+            }
+            .product-card { break-inside: avoid; }
+        }
+    </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <div class="rpmark">RP</div>
-    <div><b>REVOLUTION PRO</b><span>MULTI-CATÁLOGO · V23</span></div>
-  </div>
-
-  <div class="catalogDropdownWrap">
-    <div class="catalogDropdownBtn" id="catalogDropdownBtn">
-      <div>
-        <small>CATÁLOGO ACTIVO</small>
-        <span id="activeCatalogName">—</span>
-      </div>
-      <span class="chev">▼</span>
-    </div>
-    <div class="catalogDropdownMenu" id="catalogDropdownMenu">
-      <div id="catalogDropdownList"></div>
-      <div class="catalogDropdownFooter">
-        <button id="btnNewCatalog">＋ Nuevo catálogo (importar PDF)</button>
-      </div>
-    </div>
-  </div>
-
-  <nav>
-    <button class="navbtn active" data-view="catalog">Catálogo</button>
-    <button class="navbtn" data-view="editor">Editar precios</button>
-    <button class="navbtn" data-view="seller">Mis datos</button>
-    <button class="navbtn" data-view="catalogManager">Páginas del catálogo</button>
-  </nav>
-  <button class="secondary" id="btnPrintPDF">🖨️ Imprimir</button>
-  <button class="success" id="btnSavePDF">💾 Guardar como PDF</button>
-  <button class="primary" id="btnGeneratePDF">Generar catálogo PDF</button>
-</header>
-
-<div class="app">
-  <aside class="left">
-    <div class="lefthead"><b>Páginas</b><span id="leftPageCount">—</span></div>
-    <div class="searchwrap">⌕<input id="pageSearch" placeholder="Buscar página o producto"></div>
-    <div id="items" class="items"></div>
-  </aside>
-
-  <main>
-    <section id="catalog" class="view active">
-      <div class="toolbar">
+    <!-- UI de Controles -->
+    <div class="toolbar">
+        <h2>Gestor de Catálogos V23</h2>
         <div>
-          <small>VISTA VISUAL</small>
-          <h1 id="pageTitle">Página 1</h1>
+            <button id="btnSavePDF" class="btn-action">Exportar Catálogo PDF</button>
         </div>
-        <div class="tools">
-          <button id="btnPrevPage">←</button>
-          <button id="btnNextPage">→</button>
-          <button id="btnZoomMinus">−</button>
-          <span id="zoomLabel">100%</span>
-          <button id="btnZoomPlus">+</button>
-          <button id="btnFitPage">Ajustar</button>
-        </div>
-      </div>
-      <div class="catalogPositionBar">
-        <div class="positionModeInfo">
-          <b>Posicionar elementos</b>
-          <span id="catalogPositionStatus">Selecciona qué elemento quieres mover directamente sobre la página.</span>
-        </div>
-        <div class="catalogPositionActions">
-          <button id="movePriceBtn" class="positionModeBtn">✥ Mover precio</button>
-          <button id="moveSellerBtn" class="positionModeBtn">✥ Mover datos vendedor</button>
-          <button id="stopMoveBtn" class="positionModeBtn muted">Terminar</button>
-        </div>
-      </div>
-      <div id="stage" class="stage">
-        <div id="pageWrap" class="pagewrap">
-          <img id="pageImg" src="" alt="Página del catálogo">
-          <div id="priceBadge" class="priceBadge hidden"></div>
-          <div id="sellerOverlay" class="sellerOverlay hidden"></div>
-        </div>
-      </div>
-      <div class="underbar">
-        <label><input id="showPrice" type="checkbox" checked> Mostrar precio</label>
-        <span>🔒 Fotografías, textos, fichas, logos y diagramación oficiales están protegidos.</span>
-        <span id="pageCounter">—</span>
-      </div>
-    </section>
-
-    <section id="editor" class="view">
-      <div class="content">
-        <div class="sectionTitle">
-          <div>
-            <small>COMERCIAL</small>
-            <h2>Editar precios</h2>
-            <p>Valores comerciales en pesos chilenos (CLP). El diseño y contenido oficial permanecen bloqueados.</p>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="success" id="btnSavePDF2">💾 Guardar como PDF</button>
-            <button class="primary" id="btnGeneratePDF2">Generar catálogo PDF</button>
-          </div>
-        </div>
-        <div class="notice">🔒 <b>Contenido oficial bloqueado.</b> Los productos, fotografías, textos técnicos y diseño no son editables desde el modo vendedor.</div>
-        <div class="priceLegend">
-          <b>Producto</b>
-          <span>Precio normal (CLP)</span>
-          <span>Precio oferta (CLP)</span>
-          <span>Mostrar</span>
-          <span></span>
-        </div>
-        <div id="productEditor" class="productEditor"></div>
-      </div>
-    </section>
-
-    <section id="seller" class="view">
-      <div class="content narrow">
-        <div class="sectionTitle">
-          <div>
-            <small>VENDEDOR</small>
-            <h2>Mis datos</h2>
-            <p>Estos datos se utilizan en la personalización comercial y en la contraportada.</p>
-          </div>
-        </div>
-        <div class="formcard">
-          <div class="formgrid">
-            <label>Ejecutivo<input id="sName" placeholder="Ejecutivo / vendedor"></label>
-            <label>Área / sucursal<input id="sCompany" placeholder="Santiago, Antofagasta, etc."></label>
-            <label>Correo<input id="sEmail" placeholder="correo@empresa.cl"></label>
-            <label>Teléfono<input id="sPhone" placeholder="+56 9 1234 5678"></label>
-            <label>WhatsApp<input id="sWa" placeholder="+56 9 1234 5678"></label>
-            <label>Cargo<input id="sRole" placeholder="Ejecutivo Comercial"></label>
-
-            <!-- ── NUEVO V23: selector de página del vendedor ── -->
-            <label class="full">📍 ¿Dónde van los datos del vendedor?
-              <select id="sellerPageMode">
-                <option value="last">Solo en la última página (contraportada)</option>
-                <option value="first">Solo en la primera página (portada)</option>
-                <option value="custom">En una página personalizada…</option>
-                <option value="none">No mostrar en ninguna página</option>
-              </select>
-              <small id="sellerPageCustomLabel" style="display:none;font-size:10px;color:#666;margin-top:6px">
-                Página número: <input type="number" id="sellerPageCustom" min="1" value="1" style="width:80px;padding:6px;border:1px solid #d5d9dc;border-radius:6px">
-              </small>
-            </label>
-            <!-- ── FIN NUEVO ── -->
-
-            <label class="full">Mensaje comercial<textarea id="sMsg" placeholder="Mensaje opcional para clientes"></textarea></label>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="catalogManager" class="view">
-      <div class="content">
-        <div class="sectionTitle">
-          <div>
-            <small>CONFIGURACIÓN</small>
-            <h2>Páginas del catálogo activo</h2>
-            <p>Define qué representa cada página. Marca páginas como Producto (nombre libre), Institucional, Portada o Contraportada.</p>
-          </div>
-        </div>
-        <div class="notice">📄 <b>Cambiar catálogo:</b> usa el selector arriba a la izquierda para cambiar entre catálogos o crear uno nuevo importando un PDF.</div>
-        <div class="catalogManager">
-          <div class="catalogManagerHead">
-            <div>
-              <b id="catalogManagerTitle">—</b>
-              <span id="catalogManagerCount">—</span>
-            </div>
-            <div class="catalogManagerActions">
-              <button class="secondary" id="btnAddProduct">＋ Agregar producto manualmente</button>
-              <button class="save" id="btnSaveConfig">Guardar configuración</button>
-            </div>
-          </div>
-          <div class="catalogSummary" id="catalogSummary">—</div>
-          <div id="catalogProductList" class="catalogProductList"></div>
-          <div id="catalogPagesEditor"></div>
-        </div>
-        <div id="catalogImportStatus" class="importStatus"></div>
-      </div>
-    </section>
-  </main>
-
-  <aside class="right">
-    <div class="righthead"><small>DETALLE</small></div>
-    <div id="detail">
-      <div class="emptyDetail">
-        <div>📄</div>
-        <b>Selecciona un producto</b>
-        <p>Desde la barra lateral o el editor de precios.</p>
-      </div>
     </div>
-  </aside>
-</div>
 
-<div class="modalBack" id="newCatalogModal">
-  <div class="modal">
-    <h3>Crear catálogo nuevo</h3>
-    <p>Importa un PDF. Después asignarás manualmente qué página es portada, producto, institucional o contraportada.</p>
-    <label>NOMBRE DEL CATÁLOGO</label>
-    <input type="text" id="newCatalogName" placeholder="Ej: Invierno 2027">
-    <label>ARCHIVO PDF</label>
-    <input type="file" id="newCatalogPdf" accept="application/pdf,.pdf">
-    <div id="newCatalogStatus" class="importStatus"></div>
-    <div class="actions">
-      <button class="secondary" id="btnCancelNewCatalog">Cancelar</button>
-      <button class="primary" id="btnImportCatalog">Importar y crear</button>
+    <!-- Contenido del Catálogo -->
+    <div class="catalog-page">
+        <header class="catalog-header">
+            <h1>Colección Técnica 2026</h1>
+            <p>Indumentaria de Alta Resistencia para Minería e Industria</p>
+        </header>
+
+        <div class="product-grid">
+            <!-- Producto 1: Indumentaria Técnica -->
+            <div class="product-card">
+                <div class="product-image">[Render 3D Realista de Prenda - Fondo Blanco]</div>
+                <h3 class="product-title">Chaqueta Operativa Alta Visibilidad</h3>
+                <ul class="tech-specs">
+                    <li><strong>Tecnología:</strong> Sistema RECCO integrado para detección rápida.</li>
+                    <li><strong>Material:</strong> Tela ignífuga y resistente a la abrasión mecánica.</li>
+                    <li><strong>Aplicación:</strong> Operaciones mineras a tajo abierto y subterráneas.</li>
+                </ul>
+            </div>
+
+            <!-- Producto 2: Equipamiento de Seguridad -->
+            <div class="product-card">
+                <div class="product-image">[Render de Producto - Lentes]</div>
+                <h3 class="product-title">Lentes de Seguridad Caterpillar Torque</h3>
+                <ul class="tech-specs">
+                    <li><strong>Características:</strong> Protección confiable para los trabajos más exigentes.</li>
+                    <li><strong>Diseño:</strong> Ergonómico, envolvente y con tratamiento anti-empañante.</li>
+                    <li><strong>Certificación:</strong> ANSI Z87.1 contra altos impactos.</li>
+                </ul>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<script>
-/* ══════════════════════════════════════════════════════════════
-   REVOLUTION PRO — Multi-Catálogo V23
-   - Doble calidad (miniatura + alta) al importar PDF
-   - Selector de página del vendedor (última / primera / custom / ninguna)
-   - Botón "Guardar como PDF" con jsPDF (descarga directa)
-   ══════════════════════════════════════════════════════════════ */
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnSave = document.getElementById('btnSavePDF');
+            if (btnSave) {
+                btnSave.addEventListener('click', savePDFFile);
+            }
+        });
 
-(function(){
-"use strict";
+        async function savePDFFile() {
+            const btnSave = document.getElementById('btnSavePDF');
+            
+            try {
+                // Prevenir clics múltiples
+                btnSave.disabled = true;
+                btnSave.textContent = "Generando PDF...";
 
-console.log("[V23] Cargando script principal...");
-console.log("[V23] pdfjsLib disponible:", typeof pdfjsLib);
-console.log("[V23] jspdf disponible:", typeof (window.jspdf && window.jspdf.jsPDF));
+                const defaultFilename = `catalogo_indumentaria_${Date.now()}.pdf`;
 
-var LS_INDEX_KEY = "rp_v22_catalogs_index";   // se mantiene para compatibilidad
-var LS_SELLER_KEY = "rp_v22_seller";
-var IDB_NAME = "revolutionpro_v22";
-var IDB_STORE = "catalogs";
+                // Verificación estricta de la API de Electron
+                if (!window.electronAPI) {
+                    alert("Error: No se detectó la API de Electron. Revisa preload_2.js");
+                    return;
+                }
 
-var state = {
-  activeCatalog: null,
-  catalogIndex: { activeId: null, list: [] },
-  seller: {},
-  page: 1,
-  scale: 1,
-  positionMode: "none"
-};
+                const response = await window.electronAPI.savePDF(defaultFilename);
+                
+                if (response && response.success) {
+                    // Opcional: mostrar alerta de éxito
+                    console.log("PDF guardado en:", response.filePath);
+                } else if (response && response.message) {
+                    console.warn("Aviso:", response.message);
+                }
 
-function $(id){ return document.getElementById(id); }
-
-function escapeHtml(s){
-  if(s === undefined || s === null) return "";
-  return String(s).replace(/[&<>"']/g, function(c){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-  });
-}
-
-function formatCLP(v){
-  if(!v) return "";
-  var n = Number(String(v).replace(/\D/g, ""));
-  if(!n && n !== 0) return "";
-  return "$" + n.toLocaleString("es-CL");
-}
-
-/* ───── IndexedDB ───── */
-function idbOpen(){
-  return new Promise(function(res, rej){
-    var req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = function(e){
-      var db = e.target.result;
-      if(!db.objectStoreNames.contains(IDB_STORE)){
-        db.createObjectStore(IDB_STORE, { keyPath: "id" });
-      }
-    };
-    req.onsuccess = function(){ res(req.result); };
-    req.onerror = function(){ rej(req.error); };
-  });
-}
-function idbPut(obj){
-  return idbOpen().then(function(db){
-    return new Promise(function(res, rej){
-      var tx = db.transaction(IDB_STORE, "readwrite");
-      tx.objectStore(IDB_STORE).put(obj);
-      tx.oncomplete = function(){ res(); };
-      tx.onerror = function(){ rej(tx.error); };
-    });
-  });
-}
-function idbGet(id){
-  return idbOpen().then(function(db){
-    return new Promise(function(res, rej){
-      var tx = db.transaction(IDB_STORE, "readonly");
-      var r = tx.objectStore(IDB_STORE).get(id);
-      r.onsuccess = function(){ res(r.result || null); };
-      r.onerror = function(){ rej(r.error); };
-    });
-  });
-}
-function idbDelete(id){
-  return idbOpen().then(function(db){
-    return new Promise(function(res, rej){
-      var tx = db.transaction(IDB_STORE, "readwrite");
-      tx.objectStore(IDB_STORE).delete(id);
-      tx.oncomplete = function(){ res(); };
-      tx.onerror = function(){ rej(tx.error); };
-    });
-  });
-}
-
-/* ───── Índice de catálogos ───── */
-function loadIndex(){
-  try {
-    var raw = localStorage.getItem(LS_INDEX_KEY);
-    if(raw) state.catalogIndex = JSON.parse(raw);
-  } catch(e){ console.warn(e); }
-  if(!state.catalogIndex.list) state.catalogIndex.list = [];
-}
-function saveIndex(){
-  try { localStorage.setItem(LS_INDEX_KEY, JSON.stringify(state.catalogIndex)); } catch(e){}
-}
-function loadSellerLS(){
-  try { state.seller = JSON.parse(localStorage.getItem(LS_SELLER_KEY) || "{}"); } catch(e){ state.seller = {}; }
-}
-function saveSellerLS(){
-  try { localStorage.setItem(LS_SELLER_KEY, JSON.stringify(state.seller)); } catch(e){}
-}
-
-/* ───── Bootstrap ───── */
-function bootstrap(){
-  console.log("[V23] bootstrap() iniciado");
-  loadIndex();
-  loadSellerLS();
-  bindAllEvents();
-
-  if(state.catalogIndex.list.length === 0){
-    createEmptyStarterCatalog().then(loadActiveCatalog).then(afterLoad).catch(fatalError);
-  } else {
-    loadActiveCatalog().then(afterLoad).catch(fatalError);
-  }
-}
-
-function loadActiveCatalog(){
-  var activeId = state.catalogIndex.activeId || (state.catalogIndex.list[0] && state.catalogIndex.list[0].id);
-  if(!activeId) return Promise.resolve();
-  return idbGet(activeId).then(function(c){
-    if(c){
-      state.activeCatalog = c;
-      state.catalogIndex.activeId = activeId;
-      saveIndex();
-    } else {
-      state.activeCatalog = null;
-    }
-  });
-}
-
-function afterLoad(){
-  console.log("[V23] afterLoad() — catálogo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
-  fillSellerForm();
-  renderCatalogDropdown();
-  renderCatalogManager();
-  renderItems();
-  renderPage();
-  renderProductEditor();
-  console.log("[V23] ✓ App lista");
-}
-
-function fatalError(err){
-  console.error("[V23] Error fatal:", err);
-  var div = document.createElement("div");
-  div.style.cssText = "position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#b42318;color:#fff;padding:14px 22px;border-radius:10px;z-index:9999;font-size:13px;font-weight:600;box-shadow:0 8px 24px #0004;max-width:90%;text-align:center";
-  div.textContent = "Error: " + (err && err.message ? err.message : err);
-  document.body.appendChild(div);
-  setTimeout(function(){ div.remove(); }, 20000);
-}
-
-function createEmptyStarterCatalog(){
-  var id = "cat_" + Date.now();
-  var catalog = {
-    id: id,
-    name: "Ropa 2026",
-    createdAt: Date.now(),
-    meta: { pages: 0 },
-    pages: [],
-    products: [],
-    prices: {},
-    positions: {},
-    sellerPosition: { x: 50, y: 43 },
-    sellerPageMode: "last",     // NUEVO V23
-    sellerPageCustom: 1          // NUEVO V23
-  };
-  return idbPut(catalog).then(function(){
-    state.catalogIndex.list.push({ id: id, name: catalog.name, createdAt: catalog.createdAt, pages: 0 });
-    state.catalogIndex.activeId = id;
-    saveIndex();
-    state.activeCatalog = catalog;
-  });
-}
-
-function persistActiveCatalog(){
-  if(!state.activeCatalog) return Promise.resolve();
-  return idbPut(state.activeCatalog).then(function(){
-    var entry = null;
-    for(var i = 0; i < state.catalogIndex.list.length; i++){
-      if(state.catalogIndex.list[i].id === state.activeCatalog.id){ entry = state.catalogIndex.list[i]; break; }
-    }
-    if(entry){
-      entry.name = state.activeCatalog.name;
-      entry.pages = state.activeCatalog.pages.length;
-      saveIndex();
-    }
-    updateActiveCatalogName();
-    renderCatalogDropdown();
-  });
-}
-
-function updateActiveCatalogName(){
-  var el = $("activeCatalogName");
-  if(el) el.textContent = state.activeCatalog ? state.activeCatalog.name : "—";
-}
-
-/* ───── Bindings ───── */
-function bindAllEvents(){
-  console.log("[V23] bindAllEvents()");
-
-  $("catalogDropdownBtn").addEventListener("click", function(e){ e.stopPropagation(); toggleCatalogMenu(); });
-  $("btnNewCatalog").addEventListener("click", function(e){ e.stopPropagation(); openNewCatalogModal(); });
-  $("btnCancelNewCatalog").addEventListener("click", closeNewCatalogModal);
-  $("btnImportCatalog").addEventListener("click", importNewCatalog);
-
-  $("btnGeneratePDF").addEventListener("click", generatePDF);
-  $("btnGeneratePDF2").addEventListener("click", generatePDF);
-  $("btnPrintPDF").addEventListener("click", generatePDF);     // NUEVO V23
-  $("btnSavePDF").addEventListener("click", savePDFFile);       // NUEVO V23
-  $("btnSavePDF2").addEventListener("click", savePDFFile);      // NUEVO V23
-
-  $("btnPrevPage").addEventListener("click", prevPage);
-  $("btnNextPage").addEventListener("click", nextPage);
-  $("btnZoomMinus").addEventListener("click", function(){ zoom(-1); });
-  $("btnZoomPlus").addEventListener("click", function(){ zoom(1); });
-  $("btnFitPage").addEventListener("click", fitPage);
-  $("movePriceBtn").addEventListener("click", function(){ setCatalogPositionMode("price"); });
-  $("moveSellerBtn").addEventListener("click", function(){ setCatalogPositionMode("seller"); });
-  $("stopMoveBtn").addEventListener("click", function(){ setCatalogPositionMode("none"); });
-  $("showPrice").addEventListener("change", renderPage);
-  $("pageSearch").addEventListener("input", filterItems);
-  $("btnAddProduct").addEventListener("click", addCatalogProduct);
-  $("btnSaveConfig").addEventListener("click", saveCatalogConfiguration);
-
-  // NUEVO V23: selector de página del vendedor
-  $("sellerPageMode").addEventListener("change", onSellerPageModeChange);
-  $("sellerPageCustom").addEventListener("input", onSellerPageCustomChange);
-
-  var navs = document.querySelectorAll(".navbtn");
-  for(var i = 0; i < navs.length; i++){
-    navs[i].addEventListener("click", function(){
-      showView(this.getAttribute("data-view"));
-    });
-  }
-
-  ["sName","sCompany","sEmail","sPhone","sWa","sRole","sMsg"].forEach(function(id){
-    var el = $(id);
-    if(el) el.addEventListener("input", saveSeller);
-  });
-
-  document.addEventListener("click", function(e){
-    var wrap = document.querySelector(".catalogDropdownWrap");
-    if(wrap && !wrap.contains(e.target)){
-      var m = $("catalogDropdownMenu");
-      if(m) m.classList.remove("open");
-    }
-  });
-
-  $("newCatalogModal").addEventListener("click", function(e){
-    if(e.target === this) closeNewCatalogModal();
-  });
-
-  bindPositionDrag();
-}
-
-function showView(name){
-  var navs = document.querySelectorAll(".navbtn");
-  for(var i = 0; i < navs.length; i++){
-    navs[i].classList.toggle("active", navs[i].getAttribute("data-view") === name);
-  }
-  var views = document.querySelectorAll(".view");
-  for(var j = 0; j < views.length; j++){
-    views[j].classList.toggle("active", views[j].id === name);
-  }
-  if(name === "catalog") renderPage();
-  if(name === "editor") renderProductEditor();
-  if(name === "catalogManager") renderCatalogManager();
-}
-
-/* ───── Menú de catálogos ───── */
-function toggleCatalogMenu(){
-  var m = $("catalogDropdownMenu");
-  m.classList.toggle("open");
-  if(m.classList.contains("open")) renderCatalogDropdown();
-}
-
-function renderCatalogDropdown(){
-  var list = $("catalogDropdownList");
-  list.innerHTML = "";
-  state.catalogIndex.list.forEach(function(cat){
-    var isActive = state.activeCatalog && cat.id === state.activeCatalog.id;
-    var div = document.createElement("div");
-    div.className = "catalogDropdownItem" + (isActive ? " active" : "");
-    div.innerHTML =
-      '<div>' +
-        '<b>' + escapeHtml(cat.name) + '</b>' +
-        '<small>' + cat.pages + ' páginas · ' + new Date(cat.createdAt).toLocaleDateString("es-CL") + '</small>' +
-      '</div>' +
-      '<div class="actions">' +
-        '<button title="Renombrar" data-act="rename">✎</button>' +
-        '<button title="Duplicar" data-act="duplicate">⎘</button>' +
-        '<button title="Eliminar" data-act="delete">✕</button>' +
-      '</div>';
-    div.addEventListener("click", function(e){
-      var act = e.target.getAttribute("data-act");
-      if(act === "rename"){ e.stopPropagation(); renameCatalog(cat.id); return; }
-      if(act === "duplicate"){ e.stopPropagation(); duplicateCatalog(cat.id); return; }
-      if(act === "delete"){ e.stopPropagation(); deleteCatalog(cat.id); return; }
-      switchCatalog(cat.id);
-    });
-    list.appendChild(div);
-  });
-}
-
-function switchCatalog(id){
-  if(state.activeCatalog && state.activeCatalog.id === id){ toggleCatalogMenu(); return; }
-  persistActiveCatalog().then(function(){ return idbGet(id); }).then(function(c){
-    if(c){
-      state.activeCatalog = c;
-      state.catalogIndex.activeId = id;
-      saveIndex();
-      updateActiveCatalogName();
-      afterLoad();
-    }
-    toggleCatalogMenu();
-  }).catch(fatalError);
-}
-
-function renameCatalog(id){
-  var entry = null;
-  for(var i = 0; i < state.catalogIndex.list.length; i++){
-    if(state.catalogIndex.list[i].id === id){ entry = state.catalogIndex.list[i]; break; }
-  }
-  if(!entry) return;
-  var nn = prompt("Nuevo nombre:", entry.name);
-  if(!nn) return;
-  entry.name = nn.trim();
-  idbGet(id).then(function(c){
-    if(c){ c.name = entry.name; return idbPut(c); }
-  }).then(function(){
-    if(state.activeCatalog && state.activeCatalog.id === id){
-      state.activeCatalog.name = entry.name;
-      updateActiveCatalogName();
-    }
-    saveIndex();
-    renderCatalogDropdown();
-  });
-}
-
-function duplicateCatalog(id){
-  idbGet(id).then(function(src){
-    if(!src) return;
-    var newId = "cat_" + Date.now();
-    var copy = JSON.parse(JSON.stringify(src));
-    copy.id = newId;
-    copy.name = src.name + " (copia)";
-    copy.createdAt = Date.now();
-    return idbPut(copy).then(function(){
-      state.catalogIndex.list.push({ id: newId, name: copy.name, createdAt: copy.createdAt, pages: copy.pages.length });
-      saveIndex();
-      renderCatalogDropdown();
-    });
-  });
-}
-
-function deleteCatalog(id){
-  if(!confirm("¿Eliminar este catálogo definitivamente?")) return;
-  idbDelete(id).then(function(){
-    state.catalogIndex.list = state.catalogIndex.list.filter(function(x){ return x.id !== id; });
-    if(state.catalogIndex.activeId === id){
-      if(state.catalogIndex.list.length === 0){
-        return createEmptyStarterCatalog();
-      } else {
-        state.catalogIndex.activeId = state.catalogIndex.list[0].id;
-        return loadActiveCatalog();
-      }
-    }
-  }).then(function(){
-    saveIndex();
-    afterLoad();
-  });
-}
-
-/* ───── Modal nuevo catálogo ───── */
-function openNewCatalogModal(){
-  $("catalogDropdownMenu").classList.remove("open");
-  $("newCatalogName").value = "";
-  $("newCatalogPdf").value = "";
-  $("newCatalogStatus").textContent = "";
-  $("newCatalogStatus").className = "importStatus";
-  var old = document.getElementById("pdfProgressWrap");
-  if(old) old.remove();
-  $("newCatalogModal").classList.add("open");
-}
-
-function closeNewCatalogModal(){
-  $("newCatalogModal").classList.remove("open");
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   IMPORTAR PDF — V23 con DOBLE CALIDAD
-   Guarda por cada página:
-     - dataUrl  : imagen en ALTA (0.92 / escala 2.0) → para exportar
-     - thumbUrl : imagen en BAJA (0.6 / escala 0.4) → para la UI
-   ═══════════════════════════════════════════════════════════════ */
-function importNewCatalog(){
-  var nameInput = $("newCatalogName").value.trim();
-  var fileInput = $("newCatalogPdf").files[0];
-  var status = $("newCatalogStatus");
-
-  if(!nameInput){ status.className = "importStatus err"; status.textContent = "Escribe un nombre."; return; }
-  if(!fileInput){ status.className = "importStatus err"; status.textContent = "Selecciona un PDF."; return; }
-  if(typeof pdfjsLib === "undefined"){
-    status.className = "importStatus err";
-    status.textContent = "Librería PDF no disponible. Revisa tu conexión a internet.";
-    return;
-  }
-
-  status.className = "importStatus";
-  status.textContent = "Iniciando...";
-
-  var old = document.getElementById("pdfProgressWrap");
-  if(old) old.remove();
-
-  var progWrap = document.createElement("div");
-  progWrap.id = "pdfProgressWrap";
-  progWrap.style.cssText = "margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden";
-  var progBar = document.createElement("div");
-  progBar.style.cssText = "height:100%;width:0%;background:#f2c400;transition:width .2s";
-  progWrap.appendChild(progBar);
-  status.parentNode.insertBefore(progWrap, status.nextSibling);
-
-  var reader = new FileReader();
-
-  reader.onprogress = function(e){
-    if(e.lengthComputable){
-      var pct = Math.round(e.loaded / e.total * 100);
-      status.textContent = "Cargando archivo: " + pct + "%";
-    }
-  };
-
-  reader.onload = function(){
-    var typedarray = new Uint8Array(reader.result);
-    var loadingTask = pdfjsLib.getDocument({ data: typedarray });
-
-    loadingTask.promise.then(function(pdf){
-      var total = pdf.numPages;
-      var pages = [];
-      var currentPage = 1;
-
-      function processNextPage(){
-        if(currentPage > total){
-          status.textContent = "Guardando catálogo...";
-          progBar.style.width = "100%";
-
-          var id = "cat_" + Date.now();
-          var catalog = {
-            id: id,
-            name: nameInput,
-            createdAt: Date.now(),
-            meta: { pages: total },
-            pages: pages,
-            products: [],
-            prices: {},
-            positions: {},
-            sellerPosition: { x: 50, y: 43 },
-            sellerPageMode: "last",     // NUEVO V23
-            sellerPageCustom: 1          // NUEVO V23
-          };
-
-          idbPut(catalog).then(function(){
-            state.catalogIndex.list.push({ id: id, name: catalog.name, createdAt: catalog.createdAt, pages: total });
-            state.catalogIndex.activeId = id;
-            saveIndex();
-            state.activeCatalog = catalog;
-            progWrap.remove();
-            closeNewCatalogModal();
-            afterLoad();
-            showView("catalogManager");
-          }).catch(function(e){
-            status.className = "importStatus err";
-            status.textContent = "Error guardando: " + e.message;
-            progWrap.remove();
-          });
-          return;
+            } catch (error) {
+                console.error("Error al exportar:", error);
+                alert("Hubo un error al generar el PDF.");
+            } finally {
+                // Restaurar estado del botón
+                btnSave.disabled = false;
+                btnSave.textContent = "Exportar Catálogo PDF";
+            }
         }
-
-        var pct = Math.round((currentPage - 1) / total * 100);
-        progBar.style.width = pct + "%";
-        status.textContent = "Procesando página " + currentPage + " de " + total + " (" + pct + "%)";
-
-        setTimeout(function(){
-          pdf.getPage(currentPage).then(function(page){
-
-            // ── MINIATURA (baja calidad) ──
-            var vpThumb = page.getViewport({ scale: 0.4 });
-            var cThumb = document.createElement("canvas");
-            cThumb.width = Math.round(vpThumb.width);
-            cThumb.height = Math.round(vpThumb.height);
-            var ctxThumb = cThumb.getContext("2d");
-
-            page.render({ canvasContext: ctxThumb, viewport: vpThumb }).promise.then(function(){
-              var thumbUrl = cThumb.toDataURL("image/jpeg", 0.6);
-              cThumb.width = 0; cThumb.height = 0;
-
-              // ── ALTA CALIDAD ──
-              var vpHigh = page.getViewport({ scale: 2.0 });
-              var cHigh = document.createElement("canvas");
-              cHigh.width = Math.round(vpHigh.width);
-              cHigh.height = Math.round(vpHigh.height);
-              var ctxHigh = cHigh.getContext("2d");
-
-              page.render({ canvasContext: ctxHigh, viewport: vpHigh }).promise.then(function(){
-                var dataUrl = cHigh.toDataURL("image/jpeg", 0.92);
-                cHigh.width = 0; cHigh.height = 0;
-
-                pages.push({
-                  index: currentPage,
-                  dataUrl: dataUrl,      // alta (para exportar)
-                  thumbUrl: thumbUrl     // baja (para UI)
-                });
-                currentPage++;
-                setTimeout(processNextPage, 0);
-              }).catch(function(err){
-                status.className = "importStatus err";
-                status.textContent = "Error alta en página " + currentPage + ": " + err.message;
-                progWrap.remove();
-              });
-            }).catch(function(err){
-              status.className = "importStatus err";
-              status.textContent = "Error thumb en página " + currentPage + ": " + err.message;
-              progWrap.remove();
-            });
-
-          }).catch(function(err){
-            status.className = "importStatus err";
-            status.textContent = "Error obteniendo página " + currentPage + ": " + err.message;
-            progWrap.remove();
-          });
-        }, 0);
-      }
-
-      processNextPage();
-    }).catch(function(err){
-      status.className = "importStatus err";
-      status.textContent = "Error al leer PDF: " + err.message;
-      progWrap.remove();
-    });
-  };
-
-  reader.onerror = function(){
-    status.className = "importStatus err";
-    status.textContent = "Error leyendo archivo.";
-    progWrap.remove();
-  };
-
-  reader.readAsArrayBuffer(fileInput);
-}
-
-/* ───── Lista de páginas (usa thumbUrl) ───── */
-function renderItems(){
-  var wrap = $("items");
-  wrap.innerHTML = "";
-  if(!state.activeCatalog) return;
-  state.activeCatalog.pages.forEach(function(p){
-    var prod = null;
-    for(var i = 0; i < state.activeCatalog.products.length; i++){
-      if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-    }
-    var div = document.createElement("div");
-    div.className = "item" + (p.index === state.page ? " active" : "");
-    div.setAttribute("data-page", p.index);
-    div.setAttribute("data-search", ((prod ? prod.name : "") + " " + p.index).toLowerCase());
-    var src = p.thumbUrl || p.dataUrl;   // compatibilidad con catálogos antiguos
-    div.innerHTML =
-      '<img src="' + src + '" alt="">' +
-      '<div><b>Pág ' + p.index + '</b><small>' + (prod ? escapeHtml(prod.name) : "Sin asignar") + '</small></div>';
-    div.addEventListener("click", function(){ gotoPage(p.index); });
-    wrap.appendChild(div);
-  });
-  $("leftPageCount").textContent = state.activeCatalog.pages.length + " páginas";
-}
-
-function filterItems(){
-  var q = $("pageSearch").value.toLowerCase();
-  var items = document.querySelectorAll(".item");
-  for(var i = 0; i < items.length; i++){
-    var s = items[i].getAttribute("data-search") || "";
-    items[i].style.display = s.indexOf(q) >= 0 ? "" : "none";
-  }
-}
-
-function gotoPage(n){
-  state.page = n;
-  renderPage();
-  renderItems();
-}
-
-/* ───── Render página (usa thumbUrl para la UI) ───── */
-function renderPage(){
-  if(!state.activeCatalog) return;
-  var total = state.activeCatalog.pages.length;
-  if(total === 0){
-    $("pageImg").src = "";
-    $("pageTitle").textContent = "Sin páginas";
-    $("pageCounter").textContent = "0 / 0";
-    $("priceBadge").classList.add("hidden");
-    $("sellerOverlay").classList.add("hidden");
-    return;
-  }
-  if(state.page < 1) state.page = 1;
-  if(state.page > total) state.page = total;
-
-  var p = null;
-  for(var i = 0; i < state.activeCatalog.pages.length; i++){
-    if(state.activeCatalog.pages[i].index === state.page){ p = state.activeCatalog.pages[i]; break; }
-  }
-  $("pageImg").src = p ? (p.thumbUrl || p.dataUrl) : "";
-  $("pageTitle").textContent = "Página " + state.page + " de " + total;
-  $("pageCounter").textContent = state.page + " / " + total;
-
-  var prod = null;
-  for(var j = 0; j < state.activeCatalog.products.length; j++){
-    if(state.activeCatalog.products[j].page === state.page){ prod = state.activeCatalog.products[j]; break; }
-  }
-
-  var badge = $("priceBadge");
-  var showPrice = $("showPrice").checked;
-  if(prod && showPrice){
-    var pr = state.activeCatalog.prices[prod.name] || {};
-    var normal = pr.normal ? formatCLP(pr.normal) : "—";
-    var offer = pr.offer ? formatCLP(pr.offer) : "—";
-    var pos = state.activeCatalog.positions[prod.name] || { x: 80, y: 12 };
-    badge.style.left = pos.x + "%";
-    badge.style.top = pos.y + "%";
-    badge.classList.remove("hidden");
-    badge.innerHTML =
-      '<span class="normal">PRECIO NORMAL: ' + normal + '</span>' +
-      '<span class="offer">PRECIO OFERTA: ' + offer + '</span>' +
-      '<span class="note">OFERTA SUJETA A CAMBIOS*</span>';
-  } else {
-    badge.classList.add("hidden");
-  }
-
-  // ── Vendedor: solo se muestra en la página elegida ──
-  var so = $("sellerOverlay");
-  var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-  so.style.left = sp.x + "%";
-  so.style.top = sp.y + "%";
-  var parts = [];
-  if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
-  if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
-  if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
-  if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
-  if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
-  so.innerHTML = parts.length ? parts.join("") : '<span style="color:#999">Sin datos</span>';
-
-  var sellerPage = getSellerPageNumber();
-  var showSellerOnThisPage = (parts.length > 0) && (sellerPage === state.page);
-  so.classList.toggle("hidden", !showSellerOnThisPage);
-
-  updatePositionClasses();
-}
-
-/* ── NUEVO V23: calcular en qué página va el vendedor ── */
-function getSellerPageNumber(){
-  if(!state.activeCatalog || state.activeCatalog.pages.length === 0) return -1;
-  var mode = state.activeCatalog.sellerPageMode || "last";
-  if(mode === "none")  return -1;
-  if(mode === "first") return 1;
-  if(mode === "last")  return state.activeCatalog.pages.length;
-  if(mode === "custom"){
-    var n = parseInt(state.activeCatalog.sellerPageCustom, 10) || 1;
-    if(n < 1) n = 1;
-    if(n > state.activeCatalog.pages.length) n = state.activeCatalog.pages.length;
-    return n;
-  }
-  return -1;
-}
-
-function prevPage(){ if(state.page > 1){ state.page--; renderPage(); renderItems(); } }
-function nextPage(){
-  if(state.activeCatalog && state.page < state.activeCatalog.pages.length){
-    state.page++; renderPage(); renderItems();
-  }
-}
-function zoom(d){
-  state.scale = Math.max(0.4, Math.min(1.6, state.scale + d * 0.1));
-  $("zoomLabel").textContent = Math.round(state.scale * 100) + "%";
-  var pw = $("pageWrap");
-  pw.style.transform = "scale(" + state.scale + ")";
-  pw.style.transformOrigin = "top center";
-}
-function fitPage(){
-  state.scale = 1;
-  $("zoomLabel").textContent = "100%";
-  $("pageWrap").style.transform = "";
-}
-
-/* ───── Editor de precios ───── */
-function renderProductEditor(){
-  var wrap = $("productEditor");
-  wrap.innerHTML = "";
-  if(!state.activeCatalog) return;
-  if(state.activeCatalog.products.length === 0){
-    wrap.innerHTML = '<div style="padding:30px;text-align:center;color:#888;font-size:12px">No hay productos asignados aún.<br>Ve a <b>Páginas del catálogo</b> y marca páginas como "Producto".</div>';
-    return;
-  }
-  var prods = state.activeCatalog.products.slice().sort(function(a,b){ return a.page - b.page; });
-  prods.forEach(function(prod){
-    var p = state.activeCatalog.prices[prod.name] || {};
-    var row = document.createElement("div");
-    row.className = "prodrow";
-    row.setAttribute("data-name", prod.name);
-
-    var nameDiv = document.createElement("div");
-    nameDiv.className = "prodname";
-    nameDiv.innerHTML = "<b>" + escapeHtml(prod.name) + "</b><small>Página " + prod.page + "</small>";
-
-    var inNormal = document.createElement("input");
-    inNormal.type = "text";
-    inNormal.placeholder = "Ej: 20990";
-    inNormal.value = p.normal || "";
-    inNormal.addEventListener("input", function(){ updatePrice(prod.name, "normal", this.value); });
-
-    var inOffer = document.createElement("input");
-    inOffer.type = "text";
-    inOffer.placeholder = "Ej: 15990";
-    inOffer.value = p.offer || "";
-    inOffer.addEventListener("input", function(){ updatePrice(prod.name, "offer", this.value); });
-
-    var label = document.createElement("label");
-    label.className = "switch";
-    var chk = document.createElement("input");
-    chk.type = "checkbox";
-    chk.checked = p.show !== false;
-    chk.addEventListener("change", function(){ toggleShow(prod.name, this.checked); });
-    label.appendChild(chk);
-    label.appendChild(document.createElement("span"));
-
-    var btn = document.createElement("button");
-    btn.className = "save";
-    btn.textContent = "✓";
-    btn.addEventListener("click", function(){ saveProductPrices(prod.name, row); });
-
-    row.appendChild(nameDiv);
-    row.appendChild(inNormal);
-    row.appendChild(inOffer);
-    row.appendChild(label);
-    row.appendChild(btn);
-    wrap.appendChild(row);
-  });
-}
-
-function updatePrice(name, key, val){
-  if(!state.activeCatalog.prices[name]) state.activeCatalog.prices[name] = {};
-  var clean = String(val).replace(/\D/g, "");
-  state.activeCatalog.prices[name][key] = clean ? Number(clean) : "";
-  renderPage();
-}
-
-function toggleShow(name, chk){
-  if(!state.activeCatalog.prices[name]) state.activeCatalog.prices[name] = {};
-  state.activeCatalog.prices[name].show = chk;
-  renderPage();
-}
-
-function saveProductPrices(name, rowEl){
-  persistActiveCatalog().then(function(){
-    rowEl.classList.add("saved");
-    setTimeout(function(){ rowEl.classList.remove("saved"); }, 800);
-  });
-}
-
-/* ───── Vendedor ───── */
-function fillSellerForm(){
-  var keys = ["name", "company", "email", "phone", "wa", "role", "msg"];
-  var ids = ["sName", "sCompany", "sEmail", "sPhone", "sWa", "sRole", "sMsg"];
-  for(var i = 0; i < keys.length; i++){
-    var el = $(ids[i]);
-    if(el) el.value = state.seller[keys[i]] || "";
-  }
-  // NUEVO V23: restaurar selector de página del vendedor
-  if(state.activeCatalog){
-    var mode = state.activeCatalog.sellerPageMode || "last";
-    $("sellerPageMode").value = mode;
-    $("sellerPageCustom").value = state.activeCatalog.sellerPageCustom || 1;
-    $("sellerPageCustomLabel").style.display = (mode === "custom") ? "" : "none";
-  }
-}
-
-function saveSeller(){
-  state.seller = {
-    name: $("sName").value,
-    company: $("sCompany").value,
-    email: $("sEmail").value,
-    phone: $("sPhone").value,
-    wa: $("sWa").value,
-    role: $("sRole").value,
-    msg: $("sMsg").value
-  };
-  saveSellerLS();
-  renderPage();
-}
-
-/* ── NUEVO V23: handlers del selector de página ── */
-function onSellerPageModeChange(){
-  if(!state.activeCatalog) return;
-  state.activeCatalog.sellerPageMode = $("sellerPageMode").value;
-  $("sellerPageCustomLabel").style.display = (state.activeCatalog.sellerPageMode === "custom") ? "" : "none";
-  persistActiveCatalog().then(renderPage);
-}
-
-function onSellerPageCustomChange(){
-  if(!state.activeCatalog) return;
-  var n = parseInt($("sellerPageCustom").value, 10);
-  if(isNaN(n) || n < 1) n = 1;
-  state.activeCatalog.sellerPageCustom = n;
-  persistActiveCatalog().then(renderPage);
-}
-
-/* ───── Catalog Manager ───── */
-function renderCatalogManager(){
-  if(!state.activeCatalog) return;
-  $("catalogManagerTitle").textContent = state.activeCatalog.name;
-  $("catalogManagerCount").textContent = state.activeCatalog.pages.length + " páginas";
-  $("catalogSummary").textContent = state.activeCatalog.products.length + " productos asignados · " + state.activeCatalog.pages.length + " páginas totales";
-
-  var plist = $("catalogProductList");
-  plist.innerHTML = "";
-  var prods = state.activeCatalog.products.slice().sort(function(a,b){ return a.page - b.page; });
-  prods.forEach(function(prod){
-    var chip = document.createElement("div");
-    chip.className = "catalogProductChip";
-    chip.innerHTML = '<div><b>' + escapeHtml(prod.name) + '</b> · pág ' + prod.page + '</div>';
-    var btn = document.createElement("button");
-    btn.textContent = "✕";
-    btn.addEventListener("click", function(){ removeProduct(prod.name); });
-    chip.appendChild(btn);
-    plist.appendChild(chip);
-  });
-
-  var wrap = $("catalogPagesEditor");
-  wrap.innerHTML = "";
-  state.activeCatalog.pages.forEach(function(p){
-    var prod = null;
-    for(var i = 0; i < state.activeCatalog.products.length; i++){
-      if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-    }
-    var isProduct = !!prod;
-
-    var row = document.createElement("div");
-    row.className = "catalogPageRow";
-
-    var img = document.createElement("img");
-    img.src = p.thumbUrl || p.dataUrl;   // mini para el manager
-
-    var info = document.createElement("div");
-    info.innerHTML = "<b>Página " + p.index + "</b><small>" + (isProduct ? "Producto: " + escapeHtml(prod.name) : "Sin asignar") + "</small>";
-
-    var sel = document.createElement("select");
-    var optNone = document.createElement("option");
-    optNone.value = "none";
-    optNone.textContent = "— Institucional / sin producto —";
-    if(!isProduct) optNone.selected = true;
-    var optProd = document.createElement("option");
-    optProd.value = "product";
-    optProd.textContent = "Producto";
-    if(isProduct) optProd.selected = true;
-    sel.appendChild(optNone);
-    sel.appendChild(optProd);
-    sel.addEventListener("change", function(){ setPageType(p.index, this.value); });
-
-    var newprod = document.createElement("div");
-    newprod.className = "newprod";
-    var inp = document.createElement("input");
-    inp.className = "catalogProductName";
-    inp.type = "text";
-    inp.placeholder = "Nombre del producto";
-    inp.value = isProduct ? prod.name : "";
-    inp.addEventListener("input", function(){ setProductName(p.index, this.value); });
-    var okBtn = document.createElement("button");
-    okBtn.textContent = "✓";
-    okBtn.addEventListener("click", function(){ assignProduct(p.index); });
-    newprod.appendChild(inp);
-    newprod.appendChild(okBtn);
-
-    row.appendChild(img);
-    row.appendChild(info);
-    row.appendChild(sel);
-    row.appendChild(newprod);
-    wrap.appendChild(row);
-  });
-}
-
-function setPageType(pageNum, val){
-  if(val === "none"){
-    state.activeCatalog.products = state.activeCatalog.products.filter(function(x){ return x.page !== pageNum; });
-  } else {
-    var exists = false;
-    for(var i = 0; i < state.activeCatalog.products.length; i++){
-      if(state.activeCatalog.products[i].page === pageNum){ exists = true; break; }
-    }
-    if(!exists) state.activeCatalog.products.push({ page: pageNum, name: "" });
-  }
-  renderCatalogManager();
-}
-
-function setProductName(pageNum, name){
-  for(var i = 0; i < state.activeCatalog.products.length; i++){
-    if(state.activeCatalog.products[i].page === pageNum){
-      state.activeCatalog.products[i].name = name.trim();
-      return;
-    }
-  }
-}
-
-function assignProduct(pageNum){
-  var prod = null;
-  for(var i = 0; i < state.activeCatalog.products.length; i++){
-    if(state.activeCatalog.products[i].page === pageNum){ prod = state.activeCatalog.products[i]; break; }
-  }
-  if(!prod || !prod.name){ alert("Escribe un nombre para el producto."); return; }
-  persistActiveCatalog().then(function(){
-    renderItems();
-    renderCatalogManager();
-    renderProductEditor();
-  });
-}
-
-function removeProduct(name){
-  if(!confirm('¿Quitar el producto "' + name + '"?')) return;
-  state.activeCatalog.products = state.activeCatalog.products.filter(function(x){ return x.name !== name; });
-  delete state.activeCatalog.prices[name];
-  delete state.activeCatalog.positions[name];
-  persistActiveCatalog().then(function(){
-    renderCatalogManager();
-    renderProductEditor();
-    renderItems();
-    renderPage();
-  });
-}
-
-function addCatalogProduct(){
-  var pageStr = prompt("¿En qué página está este producto? (número)");
-  if(!pageStr) return;
-  var pageNum = parseInt(pageStr, 10);
-  if(!pageNum || pageNum < 1 || pageNum > state.activeCatalog.pages.length){
-    alert("Número de página inválido."); return;
-  }
-  var name = prompt("Nombre del producto:");
-  if(!name) return;
-  state.activeCatalog.products = state.activeCatalog.products.filter(function(x){ return x.page !== pageNum; });
-  state.activeCatalog.products.push({ page: pageNum, name: name.trim() });
-  persistActiveCatalog().then(function(){
-    renderCatalogManager();
-    renderProductEditor();
-    renderItems();
-  });
-}
-
-function saveCatalogConfiguration(){
-  persistActiveCatalog().then(function(){
-    var st = $("catalogImportStatus");
-    st.className = "importStatus ok";
-    st.textContent = "✓ Configuración guardada.";
-    setTimeout(function(){ st.textContent = ""; st.className = "importStatus"; }, 2500);
-  });
-}
-
-/* ───── Modo posición ───── */
-function setCatalogPositionMode(mode){
-  state.positionMode = mode;
-  $("movePriceBtn").classList.toggle("active", mode === "price");
-  $("moveSellerBtn").classList.toggle("active", mode === "seller");
-  $("stopMoveBtn").classList.toggle("active", mode === "none");
-  var status = $("catalogPositionStatus");
-  if(mode === "price") status.textContent = "Arrastra el recuadro del precio donde quieras.";
-  else if(mode === "seller") status.textContent = "Arrastra el bloque de datos del vendedor.";
-  else status.textContent = "Selecciona qué elemento quieres mover directamente sobre la página.";
-  updatePositionClasses();
-}
-
-function updatePositionClasses(){
-  var pb = $("priceBadge");
-  var so = $("sellerOverlay");
-  pb.classList.toggle("positionEditable", state.positionMode === "price");
-  so.classList.toggle("positionEditable", state.positionMode === "seller");
-}
-
-function bindPositionDrag(){
-  var stage = $("stage");
-  var pw = $("pageWrap");
-  var dragging = null;
-
-  function onDown(e){
-    var tag = (e.target.tagName || "").toLowerCase();
-    if(tag === "input" || tag === "textarea" || tag === "select" || tag === "button") return;
-    var target = e.target.closest ? e.target.closest(".positionEditable") : null;
-    if(!target) return;
-    e.preventDefault();
-    dragging = { el: target, isPrice: target.id === "priceBadge", isSeller: target.id === "sellerOverlay" };
-    target.style.cursor = "grabbing";
-  }
-
-  function onMove(e){
-    if(!dragging) return;
-    var tag = (e.target.tagName || "").toLowerCase();
-    if(tag === "input" || tag === "textarea") return;
-    e.preventDefault();
-    var rect = pw.getBoundingClientRect();
-    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    var x = ((clientX - rect.left) / rect.width) * 100;
-    var y = ((clientY - rect.top) / rect.height) * 100;
-    var cx = Math.max(0, Math.min(100, x));
-    var cy = Math.max(0, Math.min(100, y));
-    dragging.el.style.left = cx + "%";
-    dragging.el.style.top = cy + "%";
-    if(dragging.isPrice){
-      var prod = null;
-      for(var i = 0; i < state.activeCatalog.products.length; i++){
-        if(state.activeCatalog.products[i].page === state.page){ prod = state.activeCatalog.products[i]; break; }
-      }
-      if(prod) state.activeCatalog.positions[prod.name] = { x: cx, y: cy };
-    } else if(dragging.isSeller){
-      state.activeCatalog.sellerPosition = { x: cx, y: cy };
-    }
-  }
-
-  function onUp(){
-    if(!dragging) return;
-    dragging.el.style.cursor = "";
-    dragging = null;
-    persistActiveCatalog();
-  }
-
-  stage.addEventListener("mousedown", onDown);
-  stage.addEventListener("touchstart", onDown, { passive: false });
-  document.addEventListener("mousemove", onMove);
-  document.addEventListener("touchmove", onMove, { passive: false });
-  document.addEventListener("mouseup", onUp);
-  document.addEventListener("touchend", onUp);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   GENERAR PDF (print nativo) — usa dataUrl de ALTA calidad
-   Datos del vendedor solo en la página elegida
-   ═══════════════════════════════════════════════════════════════ */
-function generatePDF(){
-  if(!state.activeCatalog){ alert("No hay catálogo cargado."); return; }
-  if(state.activeCatalog.pages.length === 0){ alert("Este catálogo no tiene páginas."); return; }
-
-  var printRoot = document.createElement("div");
-  printRoot.id = "printRoot";
-  printRoot.style.cssText = "position:fixed;inset:0;background:#fff;z-index:99999;overflow:auto";
-
-  var sellerPage = getSellerPageNumber();
-
-  var styleEl = document.createElement("style");
-  styleEl.textContent =
-    "@page{size:letter;margin:0}" +
-    ".printPageWrapper{position:relative;width:612pt;height:792pt;background:#fff;page-break-after:always;break-after:page;overflow:hidden}" +
-    ".printPageWrapper:last-child{page-break-after:auto}" +
-    ".printPageWrapper img{width:100%;height:100%;display:block}" +
-    ".printPriceBlock{position:absolute;transform:translate(-50%,-50%);background:#fff;color:#eead00;border:1.5pt solid #202020;padding:5pt 7pt;min-width:123pt;text-align:center;line-height:1.06;font-family:Arial,sans-serif}" +
-    ".printPriceBlock .ln1,.printPriceBlock .ln2{display:block;font-size:8pt;font-weight:900;white-space:nowrap}" +
-    ".printPriceBlock .ln3{display:block;font-size:5pt;font-style:italic;margin-top:2pt;white-space:nowrap}" +
-    ".printSellerBlock{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);width:230pt;background:#fff;color:#202020;border:1.5pt solid #202020;padding:9pt 12pt;text-align:center;font-size:8.5pt;line-height:1.45;font-family:Arial,sans-serif}" +
-    ".printSellerBlock b{font-size:10pt;display:block}" +
-    ".printSellerBlock span{font-weight:700;display:block}" +
-    "@media print{body>*:not(#printRoot){display:none!important}#printRoot{position:static!important}}";
-  document.head.appendChild(styleEl);
-
-  state.activeCatalog.pages.forEach(function(p, idx){
-    var wrapper = document.createElement("div");
-    wrapper.className = "printPageWrapper";
-
-    var img = document.createElement("img");
-    img.src = p.dataUrl;   // ALTA
-    wrapper.appendChild(img);
-
-    var prod = null;
-    for(var i = 0; i < state.activeCatalog.products.length; i++){
-      if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-    }
-    if(prod){
-      var pr = state.activeCatalog.prices[prod.name] || {};
-      if(pr.show !== false && (pr.normal || pr.offer)){
-        var pos = state.activeCatalog.positions[prod.name] || { x: 80, y: 12 };
-        var normal = pr.normal ? formatCLP(pr.normal) : "—";
-        var offer = pr.offer ? formatCLP(pr.offer) : "—";
-        var badge = document.createElement("div");
-        badge.className = "printPriceBlock";
-        badge.style.left = pos.x + "%";
-        badge.style.top = pos.y + "%";
-        badge.innerHTML =
-          '<span class="ln1">PRECIO NORMAL: ' + normal + '</span>' +
-          '<span class="ln2">PRECIO OFERTA: ' + offer + '</span>' +
-          '<span class="ln3">OFERTA SUJETA A CAMBIOS*</span>';
-        wrapper.appendChild(badge);
-      }
-    }
-
-    // Vendedor solo en la página elegida
-    if(p.index === sellerPage){
-      var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-      var parts = [];
-      if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
-      if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
-      if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
-      if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
-      if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
-      if(state.seller.msg) parts.push("<span>" + escapeHtml(state.seller.msg) + "</span>");
-      if(parts.length){
-        var block = document.createElement("div");
-        block.className = "printSellerBlock";
-        block.style.left = sp.x + "%";
-        block.style.top = sp.y + "%";
-        block.innerHTML = parts.join("");
-        wrapper.appendChild(block);
-      }
-    }
-
-    printRoot.appendChild(wrapper);
-  });
-
-  document.body.appendChild(printRoot);
-  document.body.classList.add("printing");
-
-  setTimeout(function(){
-    window.print();
-    setTimeout(function(){
-      document.body.classList.remove("printing");
-      if(printRoot.parentNode) printRoot.parentNode.removeChild(printRoot);
-      styleEl.remove();
-    }, 500);
-  }, 300);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   NUEVO V23: GUARDAR COMO PDF (jsPDF, descarga directa)
-   Usa dataUrl de ALTA calidad, mismo layout que imprimir
-   ═══════════════════════════════════════════════════════════════ */
-async function savePDFFile() {
-    // Definimos un nombre por defecto para el archivo
-    const defaultFilename = `catalogo_indumentaria_minera_${Date.now()}.pdf`;
-    
-    try {
-        // Deshabilitamos el botón temporalmente para evitar múltiples clics
-        const btn1 = document.getElementById('btnSavePDF');
-        const btn2 = document.getElementById('btnSavePDF2');
-        if(btn1) btn1.disabled = true;
-        if(btn2) btn2.disabled = true;
-
-        // Llamamos a la función nativa de Electron (definida en preload_2.js y main_2.js)
-        const response = await window.electronAPI.savePDF(defaultFilename);
-        
-        if (response && response.success) {
-            console.log("PDF guardado correctamente en:", response.filePath);
-            alert("Catálogo guardado exitosamente en: " + response.filePath);
-        } else {
-            throw new Error("El proceso nativo de Electron falló o fue cancelado por el usuario.");
-        }
-    } catch (error) {
-        console.error("Error al generar el PDF:", error);
-        alert("Hubo un problema al guardar el catálogo. Revisa la consola para más detalles.");
-    } finally {
-        // Volvemos a habilitar los botones
-        const btn1 = document.getElementById('btnSavePDF');
-        const btn2 = document.getElementById('btnSavePDF2');
-        if(btn1) btn1.disabled = false;
-        if(btn2) btn2.disabled = false;
-    }
-}
-
-  var btn = $("btnSavePDF");
-  var oldTxt = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "⏳ Generando...";
-
-  try {
-    // Letter: 612 x 792 pt
-    var PAGE_W = 612;
-    var PAGE_H = 792;
-    var pdf = new jsPDFCtor({
-      orientation: "portrait",
-      unit: "pt",
-      format: [PAGE_W, PAGE_H],
-      compress: true
-    });
-
-    var sellerPage = getSellerPageNumber();
-
-    state.activeCatalog.pages.forEach(function(p, idx){
-      if(idx > 0) pdf.addPage([PAGE_W, PAGE_H], "portrait");
-
-      // Imagen de fondo a página completa
-      pdf.addImage(p.dataUrl, "JPEG", 0, 0, PAGE_W, PAGE_H, undefined, "FAST");
-
-      // Precio
-      var prod = null;
-      for(var i = 0; i < state.activeCatalog.products.length; i++){
-        if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-      }
-      if(prod){
-        var pr = state.activeCatalog.prices[prod.name] || {};
-        if(pr.show !== false && (pr.normal || pr.offer)){
-          var pos = state.activeCatalog.positions[prod.name] || { x: 80, y: 12 };
-          var cx = PAGE_W * (pos.x / 100);
-          var cy = PAGE_H * (pos.y / 100);
-          var normal = pr.normal ? formatCLP(pr.normal) : "—";
-          var offer = pr.offer ? formatCLP(pr.offer) : "—";
-          drawPriceBlock(pdf, cx, cy, normal, offer);
-        }
-      }
-
-      // Vendedor solo en la página elegida
-      if(p.index === sellerPage){
-        var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-        var cx2 = PAGE_W * (sp.x / 100);
-        var cy2 = PAGE_H * (sp.y / 100);
-        drawSellerBlock(pdf, cx2, cy2, PAGE_W);
-      }
-    });
-
-    var fname = buildFileName();
-    pdf.save(fname);
-
-    btn.disabled = false;
-    btn.textContent = oldTxt;
-  } catch(err){
-    console.error("[V23] Error jsPDF:", err);
-    alert("Error generando PDF: " + err.message);
-    btn.disabled = false;
-    btn.textContent = oldTxt;
-  }
-}
-
-function drawPriceBlock(pdf, cx, cy, normal, offer){
-  var boxW = 164;
-  var boxH = 38;
-  var x = cx - boxW / 2;
-  var y = cy - boxH / 2;
-
-  pdf.setFillColor(255, 255, 255);
-  pdf.setDrawColor(32, 32, 32);
-  pdf.setLineWidth(1.5);
-  pdf.rect(x, y, boxW, boxH, "FD");
-
-  pdf.setTextColor(238, 173, 0);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(10);
-  pdf.text("PRECIO NORMAL: " + normal, cx, y + 13, { align: "center" });
-  pdf.text("PRECIO OFERTA: " + offer, cx, y + 25, { align: "center" });
-
-  pdf.setFont("helvetica", "italic");
-  pdf.setFontSize(6.5);
-  pdf.text("OFERTA SUJETA A CAMBIOS*", cx, y + 34, { align: "center" });
-}
-
-function drawSellerBlock(pdf, cx, cy, PAGE_W){
-  var name    = state.seller.name || "";
-  var role    = state.seller.role || "";
-  var email   = state.seller.email || "";
-  var phone   = state.seller.phone || "";
-  var wa      = state.seller.wa || "";
-  var msg     = state.seller.msg || "";
-
-  var lines = [];
-  if(name)  lines.push({ t: name,  bold: true,  size: 10 });
-  if(role)  lines.push({ t: role,  bold: false, size: 8.5 });
-  if(email) lines.push({ t: email, bold: false, size: 8.5 });
-  if(phone) lines.push({ t: phone, bold: false, size: 8.5 });
-  if(wa)    lines.push({ t: "WhatsApp: " + wa, bold: false, size: 8.5 });
-  if(msg)   lines.push({ t: msg,   bold: false, size: 8.5 });
-
-  if(lines.length === 0) return;
-
-  var boxW = 230;
-  var lineH = 12;
-  var boxH = 12 + lines.length * lineH + 6;
-  var x = cx - boxW / 2;
-  var y = cy - boxH / 2;
-
-  pdf.setFillColor(255, 255, 255);
-  pdf.setDrawColor(32, 32, 32);
-  pdf.setLineWidth(1.5);
-  pdf.rect(x, y, boxW, boxH, "FD");
-
-  pdf.setTextColor(32, 32, 32);
-  var ty = y + 12;
-  lines.forEach(function(ln){
-    pdf.setFont("helvetica", ln.bold ? "bold" : "normal");
-    pdf.setFontSize(ln.size);
-    pdf.text(ln.t, cx, ty, { align: "center" });
-    ty += lineH;
-  });
-}
-
-/* ── NUEVO V23: nombre del archivo ── */
-function buildFileName(){
-  var seller = (state.seller.name || "").trim()
-    .replace(/[^\p{L}\p{N}]+/gu, "_")
-    .replace(/^_+|_+$/g, "");
-  var d = new Date();
-  var pad = function(n){ return String(n).padStart(2, "0"); };
-  var date = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
-  return "Catalogo" + (seller ? "_" + seller : "") + "_" + date + ".pdf";
-}
-
-/* ───── Arranque ───── */
-window.addEventListener("load", function(){
-  console.log("[V23] DOM listo");
-  try { bootstrap(); } catch(e){ fatalError(e); }
-});
-
-})();
-</script>
+    </script>
 </body>
 </html>
