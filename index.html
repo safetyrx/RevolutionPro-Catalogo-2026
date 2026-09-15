@@ -892,15 +892,17 @@ function importNewCatalog(){
           pdf.getPage(currentPage).then(function(page){
 
             // ── MINIATURA (baja calidad) ──
-            var vpThumb = page.getViewport({ scale: 0.4 });
-            var cThumb = document.createElement("canvas");
-            cThumb.width = Math.round(vpThumb.width);
-            cThumb.height = Math.round(vpThumb.height);
-            var ctxThumb = cThumb.getContext("2d");
+            // ── ALTA CALIDAD ──
+// Cambiamos scale a 4.0 para obtener máxima resolución (nitidez en textos y detalles)
+var vpHigh = page.getViewport({ scale: 4.0 }); 
+var cHigh = document.createElement("canvas");
+cHigh.width = Math.round(vpHigh.width);
+cHigh.height = Math.round(vpHigh.height);
+var ctxHigh = cHigh.getContext("2d");
 
-            page.render({ canvasContext: ctxThumb, viewport: vpThumb }).promise.then(function(){
-              var thumbUrl = cThumb.toDataURL("image/jpeg", 0.6);
-              cThumb.width = 0; cThumb.height = 0;
+page.render({ canvasContext: ctxHigh, viewport: vpHigh }).promise.then(function(){
+  // Subimos la calidad de compresión a 0.98 para evitar los bordes pixelados
+  var dataUrl = cHigh.toDataURL("image/jpeg", 0.98);
 
               // ── ALTA CALIDAD ──
               var vpHigh = page.getViewport({ scale: 2.0 });
@@ -1572,8 +1574,9 @@ function savePDFFile(){
     state.activeCatalog.pages.forEach(function(p, idx){
       if(idx > 0) pdf.addPage([PAGE_W, PAGE_H], "portrait");
 
+      
       // Imagen de fondo a página completa
-      pdf.addImage(p.dataUrl, "JPEG", 0, 0, PAGE_W, PAGE_H, undefined, "FAST");
+pdf.addImage(p.dataUrl, "JPEG", 0, 0, PAGE_W, PAGE_H, undefined, "SLOW");
 
       // Precio
       var prod = null;
