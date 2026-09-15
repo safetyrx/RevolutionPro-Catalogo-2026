@@ -2,66 +2,67 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-let mainWindow;
-
+// V20: base actualizada de Electron para evitar el crash observado en Electron 39
+// sobre macOS Apple Silicon, manteniendo el resto del catálogo sin cambios.
 function createWindow() {
-    mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
-            // Es CRÍTICO que esta ruta apunte exactamente a tu archivo preload
-            preload: path.join(__dirname, 'preload_2.js')
-        }
-    });
+  const win = new BrowserWindow({
+    width: 1500,
+    height: 950,
+    minWidth: 1100,
+    minHeight: 700,
+    show: false,
+    title: 'Revolution Pro - Catálogo 2026',
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
+    }
+  });
 
-    mainWindow.loadFile('index_2.html');
+  win.once('ready-to-show', () => win.show());
+  win.loadFile(path.join(__dirname, 'index.html'));
 }
 
-app.whenReady().then(() => {
-    createWindow();
+ipcMain.handle('save-pdf', async (event) => {
+  const webContents = event.sender;
+  const win = BrowserWindow.fromWebContents(webContents);
 
-    app.on('activate', () => {
-        if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
-        }
+  try {
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const pdfData = await webContents.printToPDF({
+      printBackground: true,
+      margins: { marginType: 'none' },
+      pageSize: 'Letter',
+      landscape: false
     });
+
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: 'Guardar catálogo PDF',
+      defaultPath: path.join(app.getPath('documents'), 'Catalogo_RevolutionPro_2026.pdf'),
+      filters: [{ name: 'Documento PDF', extensions: ['pdf'] }]
+    });
+
+    if (canceled || !filePath) return { canceled: true };
+
+    fs.writeFileSync(filePath, pdfData);
+    return { canceled: false, filePath };
+  } catch (error) {
+    console.error('Error guardando PDF:', error);
+    return { canceled: false, error: error.message };
+  }
+});
+
+app.whenReady().then(() => {
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
-
-// Este es el proceso que escucha al botón del HTML
-ipcMain.handle('save-pdf', async (event, defaultFilename) => {
-    try {
-        // 1. Abrir diálogo para que el usuario elija dónde guardar
-        const { filePath } = await dialog.showSaveDialog(mainWindow, {
-            title: 'Guardar Catálogo PDF',
-            defaultPath: defaultFilename,
-            filters: [{ name: 'PDF Documents', extensions: ['pdf'] }]
-        });
-
-        if (!filePath) {
-            return { success: false, message: 'Operación cancelada por el usuario' };
-        }
-
-        // 2. Generar el PDF usando el motor nativo
-        const pdfData = await mainWindow.webContents.printToPDF({
-            printBackground: true, // Imprime los colores de fondo
-            pageSize: 'A4',
-            margins: { top: 0, bottom: 0, left: 0, right: 0 }
-        });
-
-        // 3. Escribir el archivo en el disco
-        fs.writeFileSync(filePath, pdfData);
-        return { success: true, filePath: filePath };
-
-    } catch (error) {
-        console.error('Error generando PDF:', error);
-        return { success: false, message: error.message };
-    }
+  if (process.platform !== 'darwin') app.quit();
 });
