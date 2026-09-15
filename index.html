@@ -6,7 +6,9 @@
 <title>Revolution Pro — Multi-Catálogo V23</title>
 
 <!-- ══════════════ PDF.js desde jsdelivr ══════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<!-- Rutas locales apuntando a la versión instalada en tu proyecto -->
+<script src="./node_modules/pdfjs-dist/build/pdf.min.js"></script>
+<script src="./node_modules/pdfjs-dist/build/pdf.worker.min.js"></script>
 <script>
   if (typeof pdfjsLib !== "undefined") {
     pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
@@ -1541,15 +1543,37 @@ function generatePDF(){
    NUEVO V23: GUARDAR COMO PDF (jsPDF, descarga directa)
    Usa dataUrl de ALTA calidad, mismo layout que imprimir
    ═══════════════════════════════════════════════════════════════ */
-function savePDFFile(){
-  if(!state.activeCatalog){ alert("No hay catálogo cargado."); return; }
-  if(state.activeCatalog.pages.length === 0){ alert("Este catálogo no tiene páginas."); return; }
+async function savePDFFile() {
+    // Definimos un nombre por defecto para el archivo
+    const defaultFilename = `catalogo_indumentaria_minera_${Date.now()}.pdf`;
+    
+    try {
+        // Deshabilitamos el botón temporalmente para evitar múltiples clics
+        const btn1 = document.getElementById('btnSavePDF');
+        const btn2 = document.getElementById('btnSavePDF2');
+        if(btn1) btn1.disabled = true;
+        if(btn2) btn2.disabled = true;
 
-  var jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!jsPDFCtor){
-    alert("jsPDF no está cargado. Revisa tu conexión a internet.");
-    return;
-  }
+        // Llamamos a la función nativa de Electron (definida en preload_2.js y main_2.js)
+        const response = await window.electronAPI.savePDF(defaultFilename);
+        
+        if (response && response.success) {
+            console.log("PDF guardado correctamente en:", response.filePath);
+            alert("Catálogo guardado exitosamente en: " + response.filePath);
+        } else {
+            throw new Error("El proceso nativo de Electron falló o fue cancelado por el usuario.");
+        }
+    } catch (error) {
+        console.error("Error al generar el PDF:", error);
+        alert("Hubo un problema al guardar el catálogo. Revisa la consola para más detalles.");
+    } finally {
+        // Volvemos a habilitar los botones
+        const btn1 = document.getElementById('btnSavePDF');
+        const btn2 = document.getElementById('btnSavePDF2');
+        if(btn1) btn1.disabled = false;
+        if(btn2) btn2.disabled = false;
+    }
+}
 
   var btn = $("btnSavePDF");
   var oldTxt = btn.textContent;
