@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Revolution Pro — Multi-Catálogo V23</title>
+<title>Revolution Pro — Multi-Catálogo V26</title>
 
 <!-- ══════════════ PDF.js desde jsdelivr ══════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
@@ -15,6 +15,8 @@
 
 <!-- ══════════════ jsPDF desde jsdelivr (para guardar PDF) ══════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <!-- pdf-lib: conserva el PDF original en vector al exportar -->
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
 <style>
 *{box-sizing:border-box}
@@ -203,7 +205,7 @@ main{min-width:0;overflow:auto}
 <header class="topbar">
   <div class="brand">
     <div class="rpmark">RP</div>
-    <div><b>REVOLUTION PRO</b><span>MULTI-CATÁLOGO · V23</span></div>
+    <div><b>REVOLUTION PRO</b><span>MULTI-CATÁLOGO · V24</span></div>
   </div>
 
   <div class="catalogDropdownWrap">
@@ -324,19 +326,21 @@ main{min-width:0;overflow:auto}
             <label>WhatsApp<input id="sWa" placeholder="+56 9 1234 5678"></label>
             <label>Cargo<input id="sRole" placeholder="Ejecutivo Comercial"></label>
 
-            <!-- ── NUEVO V23: selector de página del vendedor ── -->
-            <label class="full">📍 ¿Dónde van los datos del vendedor?
+            <label class="full">📍 Página donde aparecerán mis datos
               <select id="sellerPageMode">
-                <option value="last">Solo en la última página (contraportada)</option>
-                <option value="first">Solo en la primera página (portada)</option>
-                <option value="custom">En una página personalizada…</option>
-                <option value="none">No mostrar en ninguna página</option>
+                <option value="last">Última página (contraportada)</option>
+                <option value="first">Primera página (portada)</option>
+                <option value="custom">Elegir una página…</option>
+                <option value="none">No mostrar</option>
               </select>
               <small id="sellerPageCustomLabel" style="display:none;font-size:10px;color:#666;margin-top:6px">
-                Página número: <input type="number" id="sellerPageCustom" min="1" value="1" style="width:80px;padding:6px;border:1px solid #d5d9dc;border-radius:6px">
+                Página: <input type="number" id="sellerPageCustom" min="1" value="1" style="width:80px;padding:6px;border:1px solid #d5d9dc;border-radius:6px">
+                <button type="button" class="secondary" id="btnGoSellerPage" style="margin-left:5px;padding:6px 9px">Ir a página</button>
+              </small>
+              <small style="display:block;font-size:10px;color:#777;margin-top:6px">
+                Después, en <b>Catálogo</b> pulsa <b>✥ Mover datos vendedor</b> y arrastra el bloque exactamente donde quieras.
               </small>
             </label>
-            <!-- ── FIN NUEVO ── -->
 
             <label class="full">Mensaje comercial<textarea id="sMsg" placeholder="Mensaje opcional para clientes"></textarea></label>
           </div>
@@ -404,7 +408,7 @@ main{min-width:0;overflow:auto}
 
 <script>
 /* ══════════════════════════════════════════════════════════════
-   REVOLUTION PRO — Multi-Catálogo V23
+   REVOLUTION PRO — Multi-Catálogo V28
    - Doble calidad (miniatura + alta) al importar PDF
    - Selector de página del vendedor (última / primera / custom / ninguna)
    - Botón "Guardar como PDF" con jsPDF (descarga directa)
@@ -413,9 +417,9 @@ main{min-width:0;overflow:auto}
 (function(){
 "use strict";
 
-console.log("[V23] Cargando script principal...");
-console.log("[V23] pdfjsLib disponible:", typeof pdfjsLib);
-console.log("[V23] jspdf disponible:", typeof (window.jspdf && window.jspdf.jsPDF));
+console.log("[V28] Cargando script principal...");
+console.log("[V28] pdfjsLib disponible:", typeof pdfjsLib);
+console.log("[V28] jspdf disponible:", typeof (window.jspdf && window.jspdf.jsPDF));
 
 var LS_INDEX_KEY = "rp_v22_catalogs_index";   // se mantiene para compatibilidad
 var LS_SELLER_KEY = "rp_v22_seller";
@@ -428,7 +432,10 @@ var state = {
   seller: {},
   page: 1,
   scale: 1,
-  positionMode: "none"
+  positionMode: "none",
+  pdfDoc: null,
+  pdfDocCatalogId: null,
+  renderToken: 0
 };
 
 function $(id){ return document.getElementById(id); }
@@ -464,10 +471,14 @@ function idbOpen(){
 function idbPut(obj){
   return idbOpen().then(function(db){
     return new Promise(function(res, rej){
-      var tx = db.transaction(IDB_STORE, "readwrite");
-      tx.objectStore(IDB_STORE).put(obj);
-      tx.oncomplete = function(){ res(); };
-      tx.onerror = function(){ rej(tx.error); };
+      var tx;
+      try{
+        tx=db.transaction(IDB_STORE,"readwrite");
+        tx.objectStore(IDB_STORE).put(obj);
+        tx.oncomplete=function(){db.close();res();};
+        tx.onerror=function(){db.close();rej(tx.error||new Error("No se pudo guardar el catálogo en IndexedDB."));};
+        tx.onabort=function(){db.close();rej(tx.error||new Error("La base de datos canceló el guardado del catálogo."));};
+      }catch(e){try{db.close();}catch(_){}rej(e);}
     });
   });
 }
@@ -512,7 +523,7 @@ function saveSellerLS(){
 
 /* ───── Bootstrap ───── */
 function bootstrap(){
-  console.log("[V23] bootstrap() iniciado");
+  console.log("[V28] bootstrap() iniciado");
   loadIndex();
   loadSellerLS();
   bindAllEvents();
@@ -539,18 +550,18 @@ function loadActiveCatalog(){
 }
 
 function afterLoad(){
-  console.log("[V23] afterLoad() — catálogo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
+  console.log("[V28] afterLoad() — catálogo:", state.activeCatalog ? state.activeCatalog.name : "ninguno");
   fillSellerForm();
   renderCatalogDropdown();
   renderCatalogManager();
   renderItems();
   renderPage();
   renderProductEditor();
-  console.log("[V23] ✓ App lista");
+  console.log("[V28] ✓ App lista");
 }
 
 function fatalError(err){
-  console.error("[V23] Error fatal:", err);
+  console.error("[V28] Error fatal:", err);
   var div = document.createElement("div");
   div.style.cssText = "position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#b42318;color:#fff;padding:14px 22px;border-radius:10px;z-index:9999;font-size:13px;font-weight:600;box-shadow:0 8px 24px #0004;max-width:90%;text-align:center";
   div.textContent = "Error: " + (err && err.message ? err.message : err);
@@ -570,8 +581,8 @@ function createEmptyStarterCatalog(){
     prices: {},
     positions: {},
     sellerPosition: { x: 50, y: 43 },
-    sellerPageMode: "last",     // NUEVO V23
-    sellerPageCustom: 1          // NUEVO V23
+    sellerPageMode: "last",     // V24
+    sellerPageCustom: 1          // V24
   };
   return idbPut(catalog).then(function(){
     state.catalogIndex.list.push({ id: id, name: catalog.name, createdAt: catalog.createdAt, pages: 0 });
@@ -604,36 +615,72 @@ function updateActiveCatalogName(){
 }
 
 /* ───── Bindings ───── */
+function safeOn(id, event, handler){
+  var el=$(id);
+  if(!el){ console.warn("[V28] Falta elemento #"+id); return false; }
+  el.addEventListener(event, handler);
+  return true;
+}
+
+// Fallback de botones: si alguna inicialización falla, estos eventos siguen funcionando.
+function bindCriticalButtonsFallback(){
+  document.addEventListener("click", function(e){
+    var el=e.target.closest ? e.target.closest("button") : null;
+    if(!el) return;
+    var id=el.id;
+    try{
+      if(id==="catalogDropdownBtn") toggleCatalogMenu();
+      else if(id==="btnNewCatalog") openNewCatalogModal();
+      else if(id==="btnCancelNewCatalog") closeNewCatalogModal();
+      else if(id==="btnImportCatalog") importNewCatalog();
+      else if(id==="btnPrevPage") prevPage();
+      else if(id==="btnNextPage") nextPage();
+      else if(id==="btnZoomMinus") zoom(-1);
+      else if(id==="btnZoomPlus") zoom(1);
+      else if(id==="btnFitPage") fitPage();
+      else if(id==="movePriceBtn") setCatalogPositionMode("price");
+      else if(id==="moveSellerBtn") setCatalogPositionMode("seller");
+      else if(id==="stopMoveBtn") setCatalogPositionMode("none");
+      else if(id==="btnAddProduct") addCatalogProduct();
+      else if(id==="btnSaveConfig") saveCatalogConfiguration();
+      else if(id==="btnGoSellerPage") goToSellerPage();
+      else if(id==="btnGeneratePDF"||id==="btnGeneratePDF2"||id==="btnPrintPDF") generatePDF();
+      else if(id==="btnSavePDF"||id==="btnSavePDF2") savePDFFile();
+    }catch(err){ fatalError(err); }
+  }, true);
+}
+
 function bindAllEvents(){
-  console.log("[V23] bindAllEvents()");
+  console.log("[V28] bindAllEvents()");
 
-  $("catalogDropdownBtn").addEventListener("click", function(e){ e.stopPropagation(); toggleCatalogMenu(); });
-  $("btnNewCatalog").addEventListener("click", function(e){ e.stopPropagation(); openNewCatalogModal(); });
-  $("btnCancelNewCatalog").addEventListener("click", closeNewCatalogModal);
-  $("btnImportCatalog").addEventListener("click", importNewCatalog);
+  safeOn("catalogDropdownBtn","click",function(e){ e.stopPropagation(); toggleCatalogMenu(); });
+  safeOn("btnNewCatalog","click",function(e){ e.stopPropagation(); openNewCatalogModal(); });
+  safeOn("btnCancelNewCatalog","click",closeNewCatalogModal);
+  safeOn("btnImportCatalog","click",importNewCatalog);
 
-  $("btnGeneratePDF").addEventListener("click", generatePDF);
-  $("btnGeneratePDF2").addEventListener("click", generatePDF);
-  $("btnPrintPDF").addEventListener("click", generatePDF);     // NUEVO V23
-  $("btnSavePDF").addEventListener("click", savePDFFile);       // NUEVO V23
-  $("btnSavePDF2").addEventListener("click", savePDFFile);      // NUEVO V23
+  safeOn("btnGeneratePDF","click",generatePDF);
+  safeOn("btnGeneratePDF2","click",generatePDF);
+  safeOn("btnPrintPDF","click",generatePDF);     // V24
+  safeOn("btnSavePDF","click",savePDFFile);       // V24
+  safeOn("btnSavePDF2","click",savePDFFile);      // V24
 
-  $("btnPrevPage").addEventListener("click", prevPage);
-  $("btnNextPage").addEventListener("click", nextPage);
-  $("btnZoomMinus").addEventListener("click", function(){ zoom(-1); });
-  $("btnZoomPlus").addEventListener("click", function(){ zoom(1); });
-  $("btnFitPage").addEventListener("click", fitPage);
-  $("movePriceBtn").addEventListener("click", function(){ setCatalogPositionMode("price"); });
-  $("moveSellerBtn").addEventListener("click", function(){ setCatalogPositionMode("seller"); });
-  $("stopMoveBtn").addEventListener("click", function(){ setCatalogPositionMode("none"); });
-  $("showPrice").addEventListener("change", renderPage);
-  $("pageSearch").addEventListener("input", filterItems);
-  $("btnAddProduct").addEventListener("click", addCatalogProduct);
-  $("btnSaveConfig").addEventListener("click", saveCatalogConfiguration);
+  safeOn("btnPrevPage","click",prevPage);
+  safeOn("btnNextPage","click",nextPage);
+  safeOn("btnZoomMinus","click",function(){ zoom(-1); });
+  safeOn("btnZoomPlus","click",function(){ zoom(1); });
+  safeOn("btnFitPage","click",fitPage);
+  safeOn("movePriceBtn","click",function(){ setCatalogPositionMode("price"); });
+  safeOn("moveSellerBtn","click",function(){ setCatalogPositionMode("seller"); });
+  safeOn("stopMoveBtn","click",function(){ setCatalogPositionMode("none"); });
+  safeOn("showPrice","change",renderPage);
+  safeOn("pageSearch","input",filterItems);
+  safeOn("btnAddProduct","click",addCatalogProduct);
+  safeOn("btnSaveConfig","click",saveCatalogConfiguration);
 
-  // NUEVO V23: selector de página del vendedor
-  $("sellerPageMode").addEventListener("change", onSellerPageModeChange);
-  $("sellerPageCustom").addEventListener("input", onSellerPageCustomChange);
+  // V24: selector de página del vendedor
+  safeOn("sellerPageMode","change",onSellerPageModeChange);
+  safeOn("sellerPageCustom","input",onSellerPageCustomChange);
+  safeOn("btnGoSellerPage","click",goToSellerPage);
 
   var navs = document.querySelectorAll(".navbtn");
   for(var i = 0; i < navs.length; i++){
@@ -655,7 +702,7 @@ function bindAllEvents(){
     }
   });
 
-  $("newCatalogModal").addEventListener("click", function(e){
+  safeOn("newCatalogModal","click", function(e){
     if(e.target === this) closeNewCatalogModal();
   });
 
@@ -751,7 +798,10 @@ function duplicateCatalog(id){
     if(!src) return;
     var newId = "cat_" + Date.now();
     var copy = JSON.parse(JSON.stringify(src));
+    // JSON no conserva ArrayBuffer; recuperamos el PDF original por separado.
+    var sourcePdf = src.sourcePdf || null;
     copy.id = newId;
+    copy.sourcePdf = sourcePdf;
     copy.name = src.name + " (copia)";
     copy.createdAt = Date.now();
     return idbPut(copy).then(function(){
@@ -796,164 +846,71 @@ function closeNewCatalogModal(){
   $("newCatalogModal").classList.remove("open");
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   IMPORTAR PDF — V23 con DOBLE CALIDAD
-   Guarda por cada página:
-     - dataUrl  : imagen en ALTA (0.92 / escala 2.0) → para exportar
-     - thumbUrl : imagen en BAJA (0.6 / escala 0.4) → para la UI
-   ═══════════════════════════════════════════════════════════════ */
+/* V25 robust import: original PDF + thumbnails only */
 function importNewCatalog(){
-  var nameInput = $("newCatalogName").value.trim();
-  var fileInput = $("newCatalogPdf").files[0];
-  var status = $("newCatalogStatus");
-
-  if(!nameInput){ status.className = "importStatus err"; status.textContent = "Escribe un nombre."; return; }
-  if(!fileInput){ status.className = "importStatus err"; status.textContent = "Selecciona un PDF."; return; }
-  if(typeof pdfjsLib === "undefined"){
-    status.className = "importStatus err";
-    status.textContent = "Librería PDF no disponible. Revisa tu conexión a internet.";
-    return;
-  }
-
-  status.className = "importStatus";
-  status.textContent = "Iniciando...";
-
-  var old = document.getElementById("pdfProgressWrap");
-  if(old) old.remove();
-
-  var progWrap = document.createElement("div");
-  progWrap.id = "pdfProgressWrap";
-  progWrap.style.cssText = "margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden";
-  var progBar = document.createElement("div");
-  progBar.style.cssText = "height:100%;width:0%;background:#f2c400;transition:width .2s";
-  progWrap.appendChild(progBar);
-  status.parentNode.insertBefore(progWrap, status.nextSibling);
-
-  var reader = new FileReader();
-
-  reader.onprogress = function(e){
-    if(e.lengthComputable){
-      var pct = Math.round(e.loaded / e.total * 100);
-      status.textContent = "Cargando archivo: " + pct + "%";
-    }
-  };
-
-  reader.onload = function(){
-    var typedarray = new Uint8Array(reader.result);
-    var loadingTask = pdfjsLib.getDocument({ data: typedarray });
-
-    loadingTask.promise.then(function(pdf){
-      var total = pdf.numPages;
-      var pages = [];
-      var currentPage = 1;
-
-      function processNextPage(){
-        if(currentPage > total){
-          status.textContent = "Guardando catálogo...";
-          progBar.style.width = "100%";
-
-          var id = "cat_" + Date.now();
-          var catalog = {
-            id: id,
-            name: nameInput,
-            createdAt: Date.now(),
-            meta: { pages: total },
-            pages: pages,
-            products: [],
-            prices: {},
-            positions: {},
-            sellerPosition: { x: 50, y: 43 },
-            sellerPageMode: "last",     // NUEVO V23
-            sellerPageCustom: 1          // NUEVO V23
-          };
-
+  var nameInput=$("newCatalogName").value.trim(), fileInput=$("newCatalogPdf").files[0], status=$("newCatalogStatus");
+  if(!nameInput){status.className="importStatus err";status.textContent="Escribe un nombre.";return;}
+  if(!fileInput){status.className="importStatus err";status.textContent="Selecciona un PDF.";return;}
+  if(typeof pdfjsLib==="undefined"){status.className="importStatus err";status.textContent="Librería PDF no disponible. Revisa tu conexión a internet.";return;}
+  var btn=$("btnImportCatalog");if(btn)btn.disabled=true;status.className="importStatus";status.textContent="Iniciando importación...";
+  var old=document.getElementById("pdfProgressWrap");if(old)old.remove();
+  var progWrap=document.createElement("div");progWrap.id="pdfProgressWrap";progWrap.style.cssText="margin-top:10px;width:100%;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden";
+  var progBar=document.createElement("div");progBar.style.cssText="height:100%;width:0%;background:#f2c400;transition:width .2s";progWrap.appendChild(progBar);status.parentNode.insertBefore(progWrap,status.nextSibling);
+  function fail(e){console.error("[V28] Importación fallida:",e);status.className="importStatus err";status.textContent=e&&e.message?e.message:String(e);progWrap.remove();if(btn)btn.disabled=false;}
+  var reader=new FileReader();
+  reader.onprogress=function(e){if(e.lengthComputable)status.textContent="Cargando PDF: "+Math.round(e.loaded/e.total*100)+"%";};
+  reader.onerror=function(){fail(new Error("Error leyendo el archivo PDF."));};
+  reader.onload=function(){
+    var bytes=new Uint8Array(reader.result), task;
+    try{task=pdfjsLib.getDocument({data:bytes});}catch(e){fail(e);return;}
+    task.promise.then(function(pdf){
+      var total=pdf.numPages,pages=[],current=1;
+      function next(){
+        if(current>total){
+          status.textContent="Guardando catálogo...";progBar.style.width="100%";
+          var now=Date.now(),id="cat_"+now;
+          var catalog={id:id,name:nameInput,createdAt:now,meta:{pages:total},pages:pages,products:[],prices:{},positions:{},sellerPosition:{x:50,y:43},sourcePdf:fileInput.slice(0,fileInput.size,"application/pdf"),sellerPageMode:"last",sellerPageCustom:1};
           idbPut(catalog).then(function(){
-            state.catalogIndex.list.push({ id: id, name: catalog.name, createdAt: catalog.createdAt, pages: total });
-            state.catalogIndex.activeId = id;
-            saveIndex();
-            state.activeCatalog = catalog;
-            progWrap.remove();
-            closeNewCatalogModal();
-            afterLoad();
-            showView("catalogManager");
-          }).catch(function(e){
-            status.className = "importStatus err";
-            status.textContent = "Error guardando: " + e.message;
-            progWrap.remove();
-          });
+            state.pdfDoc=pdf;state.pdfDocCatalogId=id;state.catalogIndex.list.push({id:id,name:catalog.name,createdAt:catalog.createdAt,pages:total});state.catalogIndex.activeId=id;saveIndex();state.activeCatalog=catalog;
+            progWrap.remove();closeNewCatalogModal();if(btn)btn.disabled=false;afterLoad();showView("catalogManager");gotoPage(1);
+          }).catch(function(e){fail(new Error("No se pudo guardar el catálogo: "+(e&&e.message?e.message:e)));});
           return;
         }
-
-        var pct = Math.round((currentPage - 1) / total * 100);
-        progBar.style.width = pct + "%";
-        status.textContent = "Procesando página " + currentPage + " de " + total + " (" + pct + "%)";
-
-        setTimeout(function(){
-          pdf.getPage(currentPage).then(function(page){
-
-            // ── MINIATURA (baja calidad) ──
-            var vpThumb = page.getViewport({ scale: 0.4 });
-            var cThumb = document.createElement("canvas");
-            cThumb.width = Math.round(vpThumb.width);
-            cThumb.height = Math.round(vpThumb.height);
-            var ctxThumb = cThumb.getContext("2d");
-
-            page.render({ canvasContext: ctxThumb, viewport: vpThumb }).promise.then(function(){
-              var thumbUrl = cThumb.toDataURL("image/jpeg", 0.6);
-              cThumb.width = 0; cThumb.height = 0;
-
-              // ── ALTA CALIDAD ──
-              var vpHigh = page.getViewport({ scale: 2.0 });
-              var cHigh = document.createElement("canvas");
-              cHigh.width = Math.round(vpHigh.width);
-              cHigh.height = Math.round(vpHigh.height);
-              var ctxHigh = cHigh.getContext("2d");
-
-              page.render({ canvasContext: ctxHigh, viewport: vpHigh }).promise.then(function(){
-                var dataUrl = cHigh.toDataURL("image/jpeg", 0.92);
-                cHigh.width = 0; cHigh.height = 0;
-
-                pages.push({
-                  index: currentPage,
-                  dataUrl: dataUrl,      // alta (para exportar)
-                  thumbUrl: thumbUrl     // baja (para UI)
-                });
-                currentPage++;
-                setTimeout(processNextPage, 0);
-              }).catch(function(err){
-                status.className = "importStatus err";
-                status.textContent = "Error alta en página " + currentPage + ": " + err.message;
-                progWrap.remove();
-              });
-            }).catch(function(err){
-              status.className = "importStatus err";
-              status.textContent = "Error thumb en página " + currentPage + ": " + err.message;
-              progWrap.remove();
-            });
-
-          }).catch(function(err){
-            status.className = "importStatus err";
-            status.textContent = "Error obteniendo página " + currentPage + ": " + err.message;
-            progWrap.remove();
-          });
-        }, 0);
+        var pct=Math.round((current-1)/total*100);progBar.style.width=pct+"%";status.textContent="Preparando miniatura "+current+" de "+total+" ("+pct+"%)";
+        setTimeout(function(){pdf.getPage(current).then(function(page){
+          var vp=page.getViewport({scale:.55}),c=document.createElement("canvas");c.width=Math.max(1,Math.round(vp.width));c.height=Math.max(1,Math.round(vp.height));
+          var ctx=c.getContext("2d",{alpha:false});
+          return page.render({canvasContext:ctx,viewport:vp}).promise.then(function(){pages.push({index:current,thumbUrl:c.toDataURL("image/jpeg",.72)});c.width=0;c.height=0;current++;setTimeout(next,0);});
+        }).catch(function(e){fail(new Error("Error en página "+current+": "+e.message));});},0);
       }
-
-      processNextPage();
-    }).catch(function(err){
-      status.className = "importStatus err";
-      status.textContent = "Error al leer PDF: " + err.message;
-      progWrap.remove();
-    });
+      next();
+    }).catch(function(e){fail(new Error("Error al leer PDF: "+e.message));});
   };
-
-  reader.onerror = function(){
-    status.className = "importStatus err";
-    status.textContent = "Error leyendo archivo.";
-    progWrap.remove();
-  };
-
   reader.readAsArrayBuffer(fileInput);
+}
+function getCatalogPdfDocument(catalog){
+  if(state.pdfDoc&&state.pdfDocCatalogId===catalog.id)return Promise.resolve(state.pdfDoc);
+  return getSourcePdfBytes(catalog).then(function(buf){
+    return pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+  }).then(function(pdf){
+    state.pdfDoc=pdf;
+    state.pdfDocCatalogId=catalog.id;
+    return pdf;
+  });
+}
+
+function renderActivePageHighQuality(pageNumber){
+  if(!state.activeCatalog||!state.activeCatalog.sourcePdf||typeof pdfjsLib==="undefined")return;
+  var catalogId=state.activeCatalog.id,token=++state.renderToken;
+  getCatalogPdfDocument(state.activeCatalog).then(function(pdf){if(!state.activeCatalog||state.activeCatalog.id!==catalogId||token!==state.renderToken)return null;return pdf.getPage(pageNumber);}).then(function(page){
+    if(!page||!state.activeCatalog||state.activeCatalog.id!==catalogId||token!==state.renderToken)return;
+    var baseVp=page.getViewport({scale:1});
+    /* Render principal en alta resolución: aprox. 2500 px de ancho, para evitar pixelación incluso con zoom. */
+    var hiScale=Math.min(4.0,Math.max(2.5,2500/baseVp.width));
+    var vp=page.getViewport({scale:hiScale}),c=document.createElement("canvas");c.width=Math.max(1,Math.round(vp.width));c.height=Math.max(1,Math.round(vp.height));
+    var ctx=c.getContext("2d",{alpha:false});
+    return page.render({canvasContext:ctx,viewport:vp}).promise.then(function(){if(token===state.renderToken)$("pageImg").src=c.toDataURL("image/jpeg",.98);c.width=0;c.height=0;});
+  }).catch(function(e){console.warn("[V28] No se pudo renderizar página en alta:",e);});
 }
 
 /* ───── Lista de páginas (usa thumbUrl) ───── */
@@ -1014,7 +971,7 @@ function renderPage(){
   for(var i = 0; i < state.activeCatalog.pages.length; i++){
     if(state.activeCatalog.pages[i].index === state.page){ p = state.activeCatalog.pages[i]; break; }
   }
-  $("pageImg").src = p ? (p.thumbUrl || p.dataUrl) : "";
+  $("pageImg").src = p ? (p.dataUrl || p.thumbUrl) : "";
   $("pageTitle").textContent = "Página " + state.page + " de " + total;
   $("pageCounter").textContent = state.page + " / " + total;
 
@@ -1048,6 +1005,7 @@ function renderPage(){
   so.style.top = sp.y + "%";
   var parts = [];
   if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
+  if(state.seller.company) parts.push("<span>" + escapeHtml(state.seller.company) + "</span>");
   if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
   if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
   if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
@@ -1059,9 +1017,16 @@ function renderPage(){
   so.classList.toggle("hidden", !showSellerOnThisPage);
 
   updatePositionClasses();
+
+  /* La vista principal usa la miniatura solo como placeholder.
+     Si existe el PDF original, reemplazarla inmediatamente por un render
+     de alta resolución para que el catálogo no se vea pixelado. */
+  if(p && state.activeCatalog.sourcePdf){
+    renderActivePageHighQuality(state.page);
+  }
 }
 
-/* ── NUEVO V23: calcular en qué página va el vendedor ── */
+/* ── V28: calcular en qué página va el vendedor ── */
 function getSellerPageNumber(){
   if(!state.activeCatalog || state.activeCatalog.pages.length === 0) return -1;
   var mode = state.activeCatalog.sellerPageMode || "last";
@@ -1179,7 +1144,7 @@ function fillSellerForm(){
     var el = $(ids[i]);
     if(el) el.value = state.seller[keys[i]] || "";
   }
-  // NUEVO V23: restaurar selector de página del vendedor
+  // V24: restaurar selector de página del vendedor
   if(state.activeCatalog){
     var mode = state.activeCatalog.sellerPageMode || "last";
     $("sellerPageMode").value = mode;
@@ -1202,7 +1167,7 @@ function saveSeller(){
   renderPage();
 }
 
-/* ── NUEVO V23: handlers del selector de página ── */
+/* ── V24: handlers del selector de página ── */
 function onSellerPageModeChange(){
   if(!state.activeCatalog) return;
   state.activeCatalog.sellerPageMode = $("sellerPageMode").value;
@@ -1215,7 +1180,16 @@ function onSellerPageCustomChange(){
   var n = parseInt($("sellerPageCustom").value, 10);
   if(isNaN(n) || n < 1) n = 1;
   state.activeCatalog.sellerPageCustom = n;
-  persistActiveCatalog().then(renderPage);
+  persistActiveCatalog().then(function(){
+    renderPage();
+    if(state.activeCatalog.sellerPageMode === "custom") gotoPage(n);
+  });
+}
+
+function goToSellerPage(){
+  var n = getSellerPageNumber();
+  if(n > 0) gotoPage(n);
+  showView("catalog");
 }
 
 /* ───── Catalog Manager ───── */
@@ -1446,172 +1420,321 @@ function bindPositionDrag(){
    GENERAR PDF (print nativo) — usa dataUrl de ALTA calidad
    Datos del vendedor solo en la página elegida
    ═══════════════════════════════════════════════════════════════ */
-function generatePDF(){
+async function generatePDF(){
   if(!state.activeCatalog){ alert("No hay catálogo cargado."); return; }
-  if(state.activeCatalog.pages.length === 0){ alert("Este catálogo no tiene páginas."); return; }
+  if(!state.activeCatalog.pages || state.activeCatalog.pages.length === 0){ alert("Este catálogo no tiene páginas."); return; }
+
+  var btn = $("btnGeneratePDF");
+  var oldTxt = btn ? btn.textContent : "Generar catálogo PDF";
+  if(btn){ btn.disabled = true; btn.textContent = "⏳ Preparando vista…"; }
 
   var printRoot = document.createElement("div");
   printRoot.id = "printRoot";
   printRoot.style.cssText = "position:fixed;inset:0;background:#fff;z-index:99999;overflow:auto";
 
-  var sellerPage = getSellerPageNumber();
-
   var styleEl = document.createElement("style");
   styleEl.textContent =
-    "@page{size:letter;margin:0}" +
-    ".printPageWrapper{position:relative;width:612pt;height:792pt;background:#fff;page-break-after:always;break-after:page;overflow:hidden}" +
+    "@page{size:auto;margin:0}" +
+    ".printPageWrapper{position:relative;width:100vw;max-width:8.5in;aspect-ratio:612/792;margin:0 auto;background:#fff;page-break-after:always;break-after:page;overflow:hidden}" +
     ".printPageWrapper:last-child{page-break-after:auto}" +
-    ".printPageWrapper img{width:100%;height:100%;display:block}" +
+    ".printPageWrapper img{width:100%;height:100%;display:block;object-fit:fill}" +
     ".printPriceBlock{position:absolute;transform:translate(-50%,-50%);background:#fff;color:#eead00;border:1.5pt solid #202020;padding:5pt 7pt;min-width:123pt;text-align:center;line-height:1.06;font-family:Arial,sans-serif}" +
     ".printPriceBlock .ln1,.printPriceBlock .ln2{display:block;font-size:8pt;font-weight:900;white-space:nowrap}" +
     ".printPriceBlock .ln3{display:block;font-size:5pt;font-style:italic;margin-top:2pt;white-space:nowrap}" +
-    ".printSellerBlock{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);width:230pt;background:#fff;color:#202020;border:1.5pt solid #202020;padding:9pt 12pt;text-align:center;font-size:8.5pt;line-height:1.45;font-family:Arial,sans-serif}" +
+    ".printSellerBlock{position:absolute;transform:translate(-50%,-50%);width:230pt;background:#fff;color:#202020;border:1.5pt solid #202020;padding:9pt 12pt;text-align:center;font-size:8.5pt;line-height:1.45;font-family:Arial,sans-serif}" +
     ".printSellerBlock b{font-size:10pt;display:block}" +
     ".printSellerBlock span{font-weight:700;display:block}" +
-    "@media print{body>*:not(#printRoot){display:none!important}#printRoot{position:static!important}}";
+    "@media print{body>*:not(#printRoot){display:none!important}#printRoot{position:static!important;display:block!important}.printPageWrapper{width:8.5in;height:11in;max-width:none;margin:0}.printPageWrapper img{width:100%;height:100%}}";
   document.head.appendChild(styleEl);
-
-  state.activeCatalog.pages.forEach(function(p, idx){
-    var wrapper = document.createElement("div");
-    wrapper.className = "printPageWrapper";
-
-    var img = document.createElement("img");
-    img.src = p.dataUrl;   // ALTA
-    wrapper.appendChild(img);
-
-    var prod = null;
-    for(var i = 0; i < state.activeCatalog.products.length; i++){
-      if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-    }
-    if(prod){
-      var pr = state.activeCatalog.prices[prod.name] || {};
-      if(pr.show !== false && (pr.normal || pr.offer)){
-        var pos = state.activeCatalog.positions[prod.name] || { x: 80, y: 12 };
-        var normal = pr.normal ? formatCLP(pr.normal) : "—";
-        var offer = pr.offer ? formatCLP(pr.offer) : "—";
-        var badge = document.createElement("div");
-        badge.className = "printPriceBlock";
-        badge.style.left = pos.x + "%";
-        badge.style.top = pos.y + "%";
-        badge.innerHTML =
-          '<span class="ln1">PRECIO NORMAL: ' + normal + '</span>' +
-          '<span class="ln2">PRECIO OFERTA: ' + offer + '</span>' +
-          '<span class="ln3">OFERTA SUJETA A CAMBIOS*</span>';
-        wrapper.appendChild(badge);
-      }
-    }
-
-    // Vendedor solo en la página elegida
-    if(p.index === sellerPage){
-      var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-      var parts = [];
-      if(state.seller.name) parts.push("<b>" + escapeHtml(state.seller.name) + "</b>");
-      if(state.seller.role) parts.push("<span>" + escapeHtml(state.seller.role) + "</span>");
-      if(state.seller.email) parts.push("<span>" + escapeHtml(state.seller.email) + "</span>");
-      if(state.seller.phone) parts.push("<span>" + escapeHtml(state.seller.phone) + "</span>");
-      if(state.seller.wa) parts.push("<span>WhatsApp: " + escapeHtml(state.seller.wa) + "</span>");
-      if(state.seller.msg) parts.push("<span>" + escapeHtml(state.seller.msg) + "</span>");
-      if(parts.length){
-        var block = document.createElement("div");
-        block.className = "printSellerBlock";
-        block.style.left = sp.x + "%";
-        block.style.top = sp.y + "%";
-        block.innerHTML = parts.join("");
-        wrapper.appendChild(block);
-      }
-    }
-
-    printRoot.appendChild(wrapper);
-  });
-
   document.body.appendChild(printRoot);
-  document.body.classList.add("printing");
 
-  setTimeout(function(){
+  try{
+    var sellerPage = getSellerPageNumber();
+    var pages = state.activeCatalog.pages.slice();
+    var pdf = await getCatalogPdfDocument(state.activeCatalog);
+
+    for(var idx=0; idx<pages.length; idx++){
+      var p = pages[idx];
+      if(btn) btn.textContent = "⏳ Preparando página " + (idx+1) + " de " + pages.length + "…";
+
+      var wrapper = document.createElement("div");
+      wrapper.className = "printPageWrapper";
+      var img = document.createElement("img");
+      img.alt = "Página " + p.index;
+      wrapper.appendChild(img);
+      printRoot.appendChild(wrapper);
+
+      // Renderiza directamente desde el PDF original para evitar dataUrl inexistentes/pixelados.
+      var page = await pdf.getPage(p.index);
+      var baseViewport = page.getViewport({scale:1});
+      var targetWidth = Math.max(1000, Math.min(1600, baseViewport.width));
+      var renderScale = targetWidth / baseViewport.width;
+      var viewport = page.getViewport({scale:renderScale});
+      var canvas = document.createElement("canvas");
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      var ctx = canvas.getContext("2d", {alpha:false});
+      await page.render({canvasContext:ctx,viewport:viewport}).promise;
+      img.src = canvas.toDataURL("image/jpeg",0.94);
+      canvas.width=0; canvas.height=0;
+
+      var prod=null;
+      for(var i=0;i<state.activeCatalog.products.length;i++){
+        if(state.activeCatalog.products[i].page===p.index){prod=state.activeCatalog.products[i];break;}
+      }
+      if(prod){
+        var pr=state.activeCatalog.prices[prod.name]||{};
+        if(pr.show!==false&&(pr.normal||pr.offer)){
+          var pos=state.activeCatalog.positions[prod.name]||{x:80,y:12};
+          var badge=document.createElement("div");
+          badge.className="printPriceBlock";
+          badge.style.left=pos.x+"%";
+          badge.style.top=pos.y+"%";
+          badge.innerHTML='<span class="ln1">PRECIO NORMAL: '+(pr.normal?formatCLP(pr.normal):"—")+'</span>'+
+                          '<span class="ln2">PRECIO OFERTA: '+(pr.offer?formatCLP(pr.offer):"—")+'</span>'+
+                          '<span class="ln3">OFERTA SUJETA A CAMBIOS*</span>';
+          wrapper.appendChild(badge);
+        }
+      }
+
+      if(p.index===sellerPage){
+        var sp=state.activeCatalog.sellerPosition||{x:50,y:43};
+        var parts=[];
+        if(state.seller.name) parts.push("<b>"+escapeHtml(state.seller.name)+"</b>");
+        if(state.seller.company) parts.push("<span>"+escapeHtml(state.seller.company)+"</span>");
+        if(state.seller.role) parts.push("<span>"+escapeHtml(state.seller.role)+"</span>");
+        if(state.seller.email) parts.push("<span>"+escapeHtml(state.seller.email)+"</span>");
+        if(state.seller.phone) parts.push("<span>"+escapeHtml(state.seller.phone)+"</span>");
+        if(state.seller.wa) parts.push("<span>WhatsApp: "+escapeHtml(state.seller.wa)+"</span>");
+        if(state.seller.msg) parts.push("<span>"+escapeHtml(state.seller.msg)+"</span>");
+        if(parts.length){
+          var block=document.createElement("div");
+          block.className="printSellerBlock";
+          block.style.left=sp.x+"%";
+          block.style.top=sp.y+"%";
+          block.innerHTML=parts.join("");
+          wrapper.appendChild(block);
+        }
+      }
+    }
+
+    // Esperar a que las imágenes estén listas antes de abrir la vista previa.
+    var imgs=printRoot.querySelectorAll("img");
+    await Promise.all(Array.prototype.map.call(imgs,function(im){
+      return im.complete ? Promise.resolve() : new Promise(function(resolve){im.onload=resolve;im.onerror=resolve;});
+    }));
+
+    document.body.classList.add("printing");
+    if(btn) btn.textContent="🖨️ Abriendo vista previa…";
+    await new Promise(function(resolve){setTimeout(resolve,350);});
     window.print();
     setTimeout(function(){
       document.body.classList.remove("printing");
       if(printRoot.parentNode) printRoot.parentNode.removeChild(printRoot);
-      styleEl.remove();
-    }, 500);
-  }, 300);
+      if(styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+      if(btn){btn.disabled=false;btn.textContent=oldTxt;}
+    },1000);
+  }catch(err){
+    console.error("[V27] Error en Generar catálogo PDF:",err);
+    document.body.classList.remove("printing");
+    if(printRoot.parentNode) printRoot.parentNode.removeChild(printRoot);
+    if(styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
+    if(btn){btn.disabled=false;btn.textContent=oldTxt;}
+    alert("No se pudo preparar la vista previa del catálogo: " + (err&&err.message?err.message:err));
+  }
+}
+
+async function getSourcePdfBytes(catalog){
+  if(!catalog || !catalog.sourcePdf) throw new Error("Este catálogo no conserva el PDF original.");
+  var src=catalog.sourcePdf;
+  if(src instanceof Blob) return await src.arrayBuffer();
+  if(src instanceof ArrayBuffer) return src.slice(0);
+  if(ArrayBuffer.isView(src)) return src.buffer.slice(src.byteOffset,src.byteOffset+src.byteLength);
+  // Algunos navegadores pueden devolver un objeto Blob serializado de IndexedDB.
+  if(src && typeof src.arrayBuffer === "function") return await src.arrayBuffer();
+  throw new Error("Formato del PDF original no reconocido.");
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   NUEVO V23: GUARDAR COMO PDF (jsPDF, descarga directa)
+   V24: GUARDAR COMO PDF (jsPDF, descarga directa)
    Usa dataUrl de ALTA calidad, mismo layout que imprimir
    ═══════════════════════════════════════════════════════════════ */
-function savePDFFile(){
+async function savePDFFile(){
   if(!state.activeCatalog){ alert("No hay catálogo cargado."); return; }
   if(state.activeCatalog.pages.length === 0){ alert("Este catálogo no tiene páginas."); return; }
-
-  var jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!jsPDFCtor){
-    alert("jsPDF no está cargado. Revisa tu conexión a internet.");
-    return;
-  }
 
   var btn = $("btnSavePDF");
   var oldTxt = btn.textContent;
   btn.disabled = true;
-  btn.textContent = "⏳ Generando...";
+  btn.textContent = "⏳ Generando PDF…";
 
   try {
-    // Letter: 612 x 792 pt
-    var PAGE_W = 612;
-    var PAGE_H = 792;
-    var pdf = new jsPDFCtor({
-      orientation: "portrait",
-      unit: "pt",
-      format: [PAGE_W, PAGE_H],
-      compress: true
-    });
+    // V24: si tenemos el PDF original, NO lo rasterizamos.
+    // pdf-lib copia las páginas originales conservando texto, vectores e imágenes
+    // con la calidad nativa del archivo importado.
+    if(window.PDFLib && state.activeCatalog.sourcePdf){
+      var PDFDocument = window.PDFLib.PDFDocument;
+      var rgb = window.PDFLib.rgb;
+      var StandardFonts = window.PDFLib.StandardFonts;
 
-    var sellerPage = getSellerPageNumber();
+      var pdfSourceBytes = await getSourcePdfBytes(state.activeCatalog);
+      var pdfDoc = await PDFDocument.load(pdfSourceBytes);
+      var pages = pdfDoc.getPages();
+      var fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      var fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      var fontItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
-    state.activeCatalog.pages.forEach(function(p, idx){
-      if(idx > 0) pdf.addPage([PAGE_W, PAGE_H], "portrait");
+      var sellerPage = getSellerPageNumber();
 
-      // Imagen de fondo a página completa
-      pdf.addImage(p.dataUrl, "JPEG", 0, 0, PAGE_W, PAGE_H, undefined, "FAST");
+      pages.forEach(function(pg, idx){
+        var pageNumber = idx + 1;
+        var size = pg.getSize();
+        var pageW = size.width, pageH = size.height;
 
-      // Precio
-      var prod = null;
-      for(var i = 0; i < state.activeCatalog.products.length; i++){
-        if(state.activeCatalog.products[i].page === p.index){ prod = state.activeCatalog.products[i]; break; }
-      }
-      if(prod){
-        var pr = state.activeCatalog.prices[prod.name] || {};
-        if(pr.show !== false && (pr.normal || pr.offer)){
-          var pos = state.activeCatalog.positions[prod.name] || { x: 80, y: 12 };
-          var cx = PAGE_W * (pos.x / 100);
-          var cy = PAGE_H * (pos.y / 100);
-          var normal = pr.normal ? formatCLP(pr.normal) : "—";
-          var offer = pr.offer ? formatCLP(pr.offer) : "—";
-          drawPriceBlock(pdf, cx, cy, normal, offer);
+        // Precio
+        var prod = null;
+        for(var i=0;i<state.activeCatalog.products.length;i++){
+          if(state.activeCatalog.products[i].page === pageNumber){ prod=state.activeCatalog.products[i]; break; }
         }
-      }
+        if(prod){
+          var pr = state.activeCatalog.prices[prod.name] || {};
+          if(pr.show !== false && (pr.normal || pr.offer)){
+            var pos = state.activeCatalog.positions[prod.name] || {x:80,y:12};
+            var cx = pageW * pos.x / 100;
+            var cy = pageH * (1 - pos.y / 100);
+            drawVectorPriceBlock(pdfDoc, pg, cx, cy, pageW, pageH, pr.normal ? formatCLP(pr.normal) : "—", pr.offer ? formatCLP(pr.offer) : "—", fontBold, fontItalic, rgb);
+          }
+        }
 
-      // Vendedor solo en la página elegida
-      if(p.index === sellerPage){
-        var sp = state.activeCatalog.sellerPosition || { x: 50, y: 43 };
-        var cx2 = PAGE_W * (sp.x / 100);
-        var cy2 = PAGE_H * (sp.y / 100);
-        drawSellerBlock(pdf, cx2, cy2, PAGE_W);
-      }
-    });
+        // Datos del vendedor
+        if(pageNumber === sellerPage){
+          var sp = state.activeCatalog.sellerPosition || {x:50,y:43};
+          var scx = pageW * sp.x / 100;
+          var scy = pageH * (1 - sp.y / 100);
+          drawVectorSellerBlock(pdfDoc, pg, scx, scy, pageW, pageH, fontRegular, fontBold, rgb);
+        }
+      });
 
-    var fname = buildFileName();
-    pdf.save(fname);
+      var bytes = await pdfDoc.save({ useObjectStreams: true });
+      var blob = new Blob([bytes], {type:"application/pdf"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = buildFileName();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    } else {
+      // Compatibilidad con catálogos antiguos: fallback raster de alta resolución.
+      await savePDFFileRasterFallback();
+    }
 
     btn.disabled = false;
     btn.textContent = oldTxt;
   } catch(err){
-    console.error("[V23] Error jsPDF:", err);
-    alert("Error generando PDF: " + err.message);
+    console.error("[V28] Error exportando PDF vectorial:", err);
+    alert("No se pudo generar el PDF: " + (err && err.message ? err.message : err));
     btn.disabled = false;
     btn.textContent = oldTxt;
   }
+}
+
+function drawVectorPriceBlock(pdfDoc, page, cx, cy, pageW, pageH, normal, offer, boldFont, italicFont, rgb){
+  var scale = Math.min(pageW / 612, pageH / 792);
+  var boxW = 164 * scale, boxH = 38 * scale;
+  var x = cx - boxW/2, y = cy - boxH/2;
+
+  page.drawRectangle({
+    x:x, y:y, width:boxW, height:boxH,
+    color:rgb(1,1,1), borderColor:rgb(0.125,0.125,0.125),
+    borderWidth:1.5*scale
+  });
+
+  var fs1 = 10*scale, fs2 = 6.5*scale;
+  var c = rgb(238/255,173/255,0);
+  var text1 = "PRECIO NORMAL: " + normal;
+  var text2 = "PRECIO OFERTA: " + offer;
+  var w1 = boldFont.widthOfTextAtSize(text1, fs1);
+  var w2 = boldFont.widthOfTextAtSize(text2, fs1);
+
+  page.drawText(text1,{x:cx-w1/2,y:y+boxH-13*scale,size:fs1,font:boldFont,color:c});
+  page.drawText(text2,{x:cx-w2/2,y:y+boxH-25*scale,size:fs1,font:boldFont,color:c});
+
+  var note = "OFERTA SUJETA A CAMBIOS*";
+  var wn = italicFont.widthOfTextAtSize(note,fs2);
+  page.drawText(note,{x:cx-wn/2,y:y+4*scale,size:fs2,font:italicFont,color:rgb(0.1,0.1,0.1)});
+}
+
+function drawVectorSellerBlock(pdfDoc, page, cx, cy, pageW, pageH, regularFont, boldFont, rgb){
+  var lines = [];
+  if(state.seller.name) lines.push({t:state.seller.name,b:true,s:10});
+  if(state.seller.company) lines.push({t:state.seller.company,b:false,s:8.5});
+  if(state.seller.role) lines.push({t:state.seller.role,b:false,s:8.5});
+  if(state.seller.email) lines.push({t:state.seller.email,b:false,s:8.5});
+  if(state.seller.phone) lines.push({t:state.seller.phone,b:false,s:8.5});
+  if(state.seller.wa) lines.push({t:"WhatsApp: "+state.seller.wa,b:false,s:8.5});
+  if(state.seller.msg) lines.push({t:state.seller.msg,b:false,s:8.5});
+  if(!lines.length) return;
+
+  var scale = Math.min(pageW/612,pageH/792);
+  var boxW = 230*scale, lineH = 12*scale;
+  var boxH = (12 + lines.length*12 + 6)*scale;
+  var x = cx-boxW/2, y = cy-boxH/2;
+
+  page.drawRectangle({
+    x:x,y:y,width:boxW,height:boxH,
+    color:rgb(1,1,1),borderColor:rgb(0.125,0.125,0.125),
+    borderWidth:1.5*scale
+  });
+
+  var ty = y + boxH - 12*scale;
+  lines.forEach(function(ln){
+    var font = ln.b ? boldFont : regularFont;
+    var size = ln.s*scale;
+    var maxW = boxW - 18*scale;
+    var txt = ln.t;
+    // Ajuste sencillo para mensajes largos.
+    while(font.widthOfTextAtSize(txt,size) > maxW && txt.length > 8){
+      txt = txt.slice(0,-1);
+    }
+    if(txt !== ln.t && txt.length > 7) txt += "…";
+    var tw = font.widthOfTextAtSize(txt,size);
+    page.drawText(txt,{x:cx-tw/2,y:ty,size:size,font:font,color:rgb(0.125,0.125,0.125)});
+    ty -= lineH;
+  });
+}
+
+async function savePDFFileRasterFallback(){
+  var jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!jsPDFCtor) throw new Error("No hay motor PDF disponible.");
+
+  var PAGE_W=612, PAGE_H=792;
+  var pdf=new jsPDFCtor({orientation:"portrait",unit:"pt",format:[PAGE_W,PAGE_H],compress:true});
+  var sellerPage=getSellerPageNumber();
+
+  for(var idx=0; idx<state.activeCatalog.pages.length; idx++){
+    var p=state.activeCatalog.pages[idx];
+    if(idx>0) pdf.addPage([PAGE_W,PAGE_H],"portrait");
+    pdf.addImage(p.dataUrl || p.thumbUrl,"JPEG",0,0,PAGE_W,PAGE_H,undefined,"NONE");
+
+    var prod=null;
+    for(var i=0;i<state.activeCatalog.products.length;i++){
+      if(state.activeCatalog.products[i].page===p.index){prod=state.activeCatalog.products[i];break;}
+    }
+    if(prod){
+      var pr=state.activeCatalog.prices[prod.name]||{};
+      if(pr.show!==false&&(pr.normal||pr.offer)){
+        var pos=state.activeCatalog.positions[prod.name]||{x:80,y:12};
+        drawPriceBlock(pdf,PAGE_W*pos.x/100,PAGE_H*pos.y/100,pr.normal?formatCLP(pr.normal):"—",pr.offer?formatCLP(pr.offer):"—");
+      }
+    }
+    if(p.index===sellerPage){
+      var sp=state.activeCatalog.sellerPosition||{x:50,y:43};
+      drawSellerBlock(pdf,PAGE_W*sp.x/100,PAGE_H*sp.y/100,PAGE_W);
+    }
+  }
+  pdf.save(buildFileName());
 }
 
 function drawPriceBlock(pdf, cx, cy, normal, offer){
@@ -1675,7 +1798,7 @@ function drawSellerBlock(pdf, cx, cy, PAGE_W){
   });
 }
 
-/* ── NUEVO V23: nombre del archivo ── */
+/* ── V24: nombre del archivo ── */
 function buildFileName(){
   var seller = (state.seller.name || "").trim()
     .replace(/[^\p{L}\p{N}]+/gu, "_")
@@ -1688,7 +1811,8 @@ function buildFileName(){
 
 /* ───── Arranque ───── */
 window.addEventListener("load", function(){
-  console.log("[V23] DOM listo");
+  console.log("[V28] DOM listo");
+  bindCriticalButtonsFallback();
   try { bootstrap(); } catch(e){ fatalError(e); }
 });
 
